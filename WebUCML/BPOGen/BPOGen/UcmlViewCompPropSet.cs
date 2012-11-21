@@ -10,6 +10,25 @@ namespace UCML.IDE.WebUCML
         public string VCName;
         public string Caption;
         public HtmlNode VCNode;
+        public bool fTreeGridMode;
+        public bool fSubTableTreeMode;
+        public string ImageLink;
+        public string SubBCs;
+        public string SubParentFields;
+        public string SubLabelFields;
+        public string SubPicFields;
+        public string SubFKFields;
+
+        public UcmlViewCompnent()
+        {
+            VCName = "";
+            ImageLink = "";
+            SubBCs = "";
+            SubParentFields = "";
+            SubLabelFields = "";
+            SubPicFields = "";
+            SubFKFields = "";
+        }
 
         /// <summary>
         /// 初始化VCName的构造函数
@@ -17,6 +36,12 @@ namespace UCML.IDE.WebUCML
         public UcmlViewCompnent(string name)
         {
             this.VCName = name;
+            ImageLink = "";
+            SubBCs = "";
+            SubParentFields = "";
+            SubLabelFields = "";
+            SubPicFields = "";
+            SubFKFields = "";
         }
 
         /// <summary>

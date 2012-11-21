@@ -8,11 +8,11 @@ namespace UCML.IDE.WebUCML
     public class UcmlBPO
     {
         private string _Name;
-        private AspxPage Page;
+        public AspxPage Page;
         private CSharpDoc _PageCs;
         private CSharpDoc PageDesignerCs;
         private BpoPropertySet BpoPropSet;
-        private List<UcmlVcTabPage> VcTabList;
+        public  List<UcmlVcTabPage> VcTabList;
         private List<UcmlBusiCompPropSet> BCList;
         public string Namespace;
         public string Name
@@ -30,7 +30,7 @@ namespace UCML.IDE.WebUCML
             this.Name = bps.Name;
             this.Namespace = ns;
             BpoPropSet = bps;
-            Page = new AspxPage(bps.Name + ".aspx");
+            Page = new AspxPage(bps.Name + ".aspx",bps.Capiton);
             PageCs = new CSharpDoc(bps.Name+".aspx.cs", Namespace);
             PageDesignerCs = new CSharpDoc(bps.Name + ".designer.cs", Namespace);
 
@@ -41,8 +41,99 @@ namespace UCML.IDE.WebUCML
         public void AddVcTab(UcmlVcTabPage vcTab)
         { 
         }
+        /// <summary>
+        /// 构建Aspx页面
+        /// </summary>
+        /// <returns></returns>
         public bool BuildAspxPage()
-        { 
+        {
+            //初始化页面，构造head,body,form等基本节点
+            Page.InitPage();
+            //添加页面指令
+            AspxDirective direc4Page = new AspxDirective("Page");
+            direc4Page["language"]= "C#";
+            direc4Page["codeFile"]= Page.PageName+".cs";
+            direc4Page["Inherits"]="UCMLCommon."+this.Name;
+            direc4Page["AutoEvenWireup"]="False";
+
+            AspxDirective direc4Reg = new AspxDirective("Register");
+            direc4Reg["TagPrefix"]= "iewc";
+            direc4Reg["Namespace"]="Microsoft.Web.UI.WebControls";
+            direc4Reg["Assembly"]="Microsoft.Web.UI.WebControls";
+
+            Page.Directives.Add(direc4Page);
+            Page.Directives.Add(direc4Reg);
+            #region 构建主页面
+            //构建主页面
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                //TabStrip控件
+                AspxNode tabStrip = new AspxNode("iewc:TabStrip");
+                tabStrip["id"] = "TabStrip_"+vcTab.Name;
+                tabStrip["TargetID"] = "MultiPage_" + vcTab.Name;
+                tabStrip["CssClass"] = "UCML-TAB";
+                tabStrip["TabSelectedStyle"] = "border-right:#aca899 1px solid;border-top:white 1px solid;background:#ece9d8;border-left:white 1px solid;color:#0;border-bottom:#aca899 1px solid;";
+                tabStrip["TabHoverStyle"] = "border-right:#aca899 1px solid;border-top:white 1px solid;background:#ece9d8;border-left:white 1px solid;color:red;border-bottom:#aca899 1px solid;";
+                tabStrip["TabDefaultStyle"] = "border-right:#aca899 1px solid;padding-right:2px;border-top:#aca899 1px solid;padding-left:2px;background:#ece9d8;padding-bottom:2px;border-left:#aca899 1px solid;padding-top:2px;border-bottom:#aca899 1px solid;";
+                tabStrip["ForeColor"] = "Black";
+                tabStrip["BorderColor"] = "CornflowerBlue";
+                tabStrip["BackColor"] = "PapayaWhip";
+                tabStrip["Font-Names"] = "Verdana";
+                tabStrip["Font-Size"] = "8pt";
+                tabStrip["EnableViewState"] = "False";
+                //MultiPage控件
+                AspxNode multiPage = new AspxNode("iewc:MultiPage");
+                multiPage["id"] = "MultiPage_"+vcTab.Name;
+                multiPage["width"] = "100%";//待改成变量
+
+                //把TabStrip控件和MultiPage控件挂到MainPanelNode下
+                Page.MainPanelNode.Append(tabStrip);
+                Page.MainPanelNode.Append(multiPage);
+
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    //添加Tab控件
+                    AspxNode tab = new AspxNode("iewc:Tab");
+                    tab["id"] = "Tab_"+vc.VCName;
+                    tab["Text"] = vc.Caption;
+                    //添加TabSeperator控件
+                    HtmlNode tabSep = HtmlNode.CreateClosedNode("iewc:TabSeparator");
+                    //挂到tabStrip下
+                    tabStrip.Append(tab);
+                    tabStrip.Append(tabSep);
+
+                    //添加PageView控件
+                    AspxNode pageView = new AspxNode("iewc:PageView");
+                    pageView["id"] = "PageView_"+vc.VCName;
+                    pageView["Text"] = vc.Caption;
+                    //添加Panel控件
+                    AspxNode panel = new AspxNode("asp:Panel");
+                    panel["id"] = vc.VCName+"_Module";
+                    panel["style"] = "overflow:hidden";
+                    panel["CssClass"] = "UCML-Panel";
+                    panel["width"] = "100%";//待改成变量
+                    //挂载PageView到MultiPage
+                    multiPage.Append(pageView);
+                    //挂载Panel到PageView下
+                    pageView.Append(panel);
+                    //添加ToolBar
+                    //添加ToolButton
+                    //挂载VC到panel下
+                    panel.Append(vc.VCNode);
+                    //添加VCName Div
+                    HtmlNode div = new HtmlNode("div");
+                    div["id"] = vc.VCName;
+                    div["style"] = "BEHAVIOR:url(UCMLDBGrid.htc);width:100%;height:200";
+                    div["title"] = vc.Caption;
+                    panel.Append(div);
+                    //添加ContextMenu
+                    HtmlNode span = new HtmlNode("span");
+                    span["id"] = "theContextMenu"+vc.VCName;
+                    span["style"] = "Z-INDEX: 3103; LEFT: 0px; VISIBILITY: hidden; BEHAVIOR: url(menubar.htc); WIDTH: 200px; POSITION: absolute; TOP: 0px; HEIGHT: 20px";
+                    div.Append(span);
+                }
+            #endregion 构建主页面
+            }
             return true; 
         }
         public bool BuildPageCs()
@@ -249,13 +340,145 @@ namespace UCML.IDE.WebUCML
             initCtr.Content.AppendLine(".Attributes.Add(\"onresult\",\""+BponameBPO+".LoadResults()\");");
             initCtr.Content.AppendLine("this.Controls.Add("+BponameService+");");
             initCtr.Content.AppendLine("");
-            //添加BCnameBase
+            //添加BC Panel
+            foreach (UcmlBusiCompPropSet bc in BCList)
+            {
+                
+                string bcNameService = bc.Name + "Service";
+                string bcNameBase = bc.Name + "Base";
+                string bcName = bc.Name;
+                //添加BCNameService
+                initCtr.Content.AppendLine(bcNameService+"= new System.Web.UI.WebControls.Panel();");
+                initCtr.Content.AppendLine(bcNameService+".ID = \""+bcNameService+"\";");
+                initCtr.Content.AppendLine(bcNameService+".Style.Add(\"BEHAVIOR\",\"url(\"+LocalResourcePath+\"htc/webservice.htc)\");");
+                initCtr.Content.AppendLine(bcNameService+".Attributes.Add(\"onresult\",\""+bcNameBase+".LoadResults()\");");
+                initCtr.Content.AppendLine(" this.Controls.Add("+bcNameService+");");
+                initCtr.Content.AppendLine();
+                //添加BCNameBase
+                initCtr.Content.AppendLine(bcNameBase+"= new System.Web.UI.WebControls.Panel();");
+                initCtr.Content.AppendLine(bcNameBase+".ID = \""+bcNameBase+"\";");
+                initCtr.Content.AppendLine(bcNameBase+".Style.Add(\"BEHAVIOR\",\"url(\"+LocalResourcePath+\"UCMLTable.htc)\");");
+                initCtr.Content.AppendLine(bcNameBase+".Attributes.Add(\"ServiceID\",\""+bcNameService+"\");");
+                initCtr.Content.AppendLine(bcNameBase+".Attributes.Add(\"TableName\",\""+bc.TableName+")\";");
+                initCtr.Content.AppendLine(bcNameBase+".Attributes.Add(\"BCName\",\""+bc.Name+"\");");
+                initCtr.Content.AppendLine("this.Controls.Add("+bcNameBase+");");
+                initCtr.Content.AppendLine("");
+                //添加BCName
+                initCtr.Content.AppendLine(bcName+"= new System.Web.UI.WebControls.Panel();");
+                initCtr.Content.AppendLine(bcName+".ID = \""+bcName+"\";");
+                initCtr.Content.AppendLine(bcName+".Style.Add(\"BEHAVIOR\",\"url(\"+LocalResourcePath+\"Model/HTC/"+bc.TableName+".htc)\");");
+                initCtr.Content.AppendLine(bcName+".Attributes.Add(\"DataTable\",\""+bcNameBase+"\");");
+                initCtr.Content.AppendLine(" this.Controls.Add("+bcName+");");
+               
+                initCtr.Content.AppendLine("");
+            }
+            int vcNum = 0;
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    vcNum++;
+                }
+            }
+
+            initCtr.Content.AppendLine("AppletLinkArray = new UCMLCommon.UCMLPortal.AppletLinkInfo["+vcNum+"];");
+            initCtr.Content.AppendLine("UCMLCommon.UCMLPortal.AppletLinkInfo appletLink = null;");
+            int i = 0;
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    initCtr.Content.AppendLine("appletLink = new UCMLCommon.UCMLPortal.AppletLinkInfo();");
+                    initCtr.Content.AppendLine("appletLink.AppletName = \""+vc.VCName+"\";");
+                    initCtr.Content.AppendLine("appletLink.Caption = \""+vc.Caption+"\";");
+                    initCtr.Content.AppendLine("appletLink.Pane = \"\";");
+                    initCtr.Content.AppendLine("appletLink.fTreeGridMode = "+vc.fTreeGridMode+";");
+                    initCtr.Content.AppendLine("appletLink.fSubTableTreeMode = "+vc.fSubTableTreeMode+";");
+                    initCtr.Content.AppendLine("appletLink.ImageLink = \""+vc.ImageLink+"\";");
+                    initCtr.Content.AppendLine("appletLink.SubBCs = \""+vc.SubBCs+"\";");
+                    initCtr.Content.AppendLine("appletLink.SubParentFields = \""+vc.SubParentFields+"\";");
+                    initCtr.Content.AppendLine("appletLink.SubLabelFields = \""+vc.SubLabelFields+"\";");
+                    initCtr.Content.AppendLine("appletLink.SubPicFields = \""+vc.SubPicFields+"\";");
+                    initCtr.Content.AppendLine("appletLink.SubFKFields = \""+vc.SubFKFields+"\";");
+                    initCtr.Content.AppendLine("AppletLinkArray["+i+"] = appletLink;");
+                    initCtr.Content.AppendLine("");
+                    i++;
+                }
+            }
+            initCtr.Content.AppendLine("InjectModule();");
             initCtr.Content.AppendLine("");
+            //实例化业务逻辑类
+            initCtr.Content.AppendLine("DataSet ds = null;");
+            initCtr.Content.AppendLine("busiObj = UCMLBusinessObjectFactory.CreateBusinessObject(this.BPOName);");
+            
+
+            initCtr.Content.AppendLine("if (fEnableConfig==true)");
+            initCtr.Content.AppendLine("{");
+            initCtr.Content.AppendLine("    busiObj.AppletLinkArray = this.AppletLinkArray;");
+            initCtr.Content.AppendLine("}");
+            //读取数据
+            initCtr.Content.AppendLine(" ds = busiObj.InitBusinessEnv();");
+            initCtr.Content.AppendLine("InitViewComponent(busiObj);");
+            initCtr.Content.AppendLine("IOC_HttpGet();");
+
+            //GRID个性设置信息读取
+            initCtr.Content.AppendLine("SysDBModel.PersonApplet obj = new SysDBModel.PersonApplet();");
+            initCtr.Content.AppendLine("SysDBModel.PersonAppletInfo[] arrInfo = null;");
+            initCtr.Content.AppendLine("System.Web.UI.HtmlControls.HtmlInputHidden InputHidden = null;");
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    initCtr.Content.AppendLine("arrInfo =  obj.ReadByPersonVC(busiObj.loginUserInfo.UserOID, \""+vc.VCName+"\");");
+                    initCtr.Content.AppendLine("InputHidden = new System.Web.UI.HtmlControls.HtmlInputHidden();");
+                    initCtr.Content.AppendLine("if (arrInfo.Length > 0)");
+                    initCtr.Content.AppendLine("    InputHidden.Value = arrInfo[0].FieldName;");
+                    initCtr.Content.AppendLine("else");
+                    initCtr.Content.AppendLine("    InputHidden.Value = \"\";");
+                    initCtr.Content.AppendLine("InputHidden.ID = "+vc.VCName+"\"_ColumnSetup\";");
+                    initCtr.Content.AppendLine("this.Controls.Add(InputHidden);");
+                }
+            }
+            initCtr.Content.AppendLine("ReplaceResourceData();");
+
+            initCtr.Content.AppendLine("this.Response.Write(\"<script language=javascript>var UCMLSkinPath='\"+this.SkinPath+\"';</script>\");");
             initCtr.Content.AppendLine("");
+            //换肤风格构造
+            initCtr.Content.AppendLine("HtmlLink myHtmlLink = new HtmlLink();");
+            initCtr.Content.AppendLine("myHtmlLink.Href = this.LocalResourcePath+SkinPath + \"css/ucmlapp.css\";");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"rel\",\"stylesheet\");");
+            initCtr.Content.AppendLine("Page.Header.Controls.AddAt(1,myHtmlLink);");
+            initCtr.Content.AppendLine("myHtmlLink = new HtmlLink();");
+            initCtr.Content.AppendLine("myHtmlLink.Href = this.LocalResourcePath+SkinPath + \"UCMLPortal/RES/module.css\";");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"rel\", \"stylesheet\");");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"type\",\"text/css\");");
+            initCtr.Content.AppendLine("Page.Header.Controls.AddAt(2,myHtmlLink);");
+            initCtr.Content.AppendLine("myHtmlLink = new HtmlLink();");
+            initCtr.Content.AppendLine("myHtmlLink.Href = this.LocalResourcePath+SkinPath + \"UCMLPortal/RES/default.css\";");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"rel\", \"stylesheet\");");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"type\",\"text/css\");");
+            initCtr.Content.AppendLine("Page.Header.Controls.AddAt(3,myHtmlLink);");
+            initCtr.Content.AppendLine("myHtmlLink = new HtmlLink();");
+            initCtr.Content.AppendLine("myHtmlLink.Href = this.LocalResourcePath+SkinPath + \"UCMLPortal/RES/skin.css\";");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"rel\", \"stylesheet\");");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"type\",\"text/css\");");
+            initCtr.Content.AppendLine("Page.Header.Controls.AddAt(4,myHtmlLink);");
+            initCtr.Content.AppendLine("myHtmlLink = new HtmlLink();");
+            initCtr.Content.AppendLine("myHtmlLink.Href = this.LocalResourcePath+SkinPath + \"UCMLPortal/RES/container.css\";");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"rel\", \"stylesheet\");");
+            initCtr.Content.AppendLine("myHtmlLink.Attributes.Add(\"type\",\"text/css\");");
+            initCtr.Content.AppendLine("Page.Header.Controls.AddAt(5,myHtmlLink);");
             initCtr.Content.AppendLine("");
-            initCtr.Content.AppendLine("");
-            initCtr.Content.AppendLine("");
-            initCtr.Content.AppendLine("");
+
+            initCtr.Content.AppendLine("string xml = ds.GetXml();");
+            initCtr.Content.AppendLine("LiteralControl li = new LiteralControl();");
+            initCtr.Content.AppendLine("li.Text = \"<xml id= UCMLBUSIOBJECT>\"+xml+\"</xml>\";");
+            initCtr.Content.AppendLine("Page.Controls.Add(li);");
+            initCtr.Content.AppendLine("if (fMutiLangugeSupport==true||UCMLCommon.UCMLInitEnv.fMutiLangugeSupport==true)");
+            initCtr.Content.AppendLine("{");
+            initCtr.Content.AppendLine("    this.Response.Write(\"<xml id= UCMLlanguge>\" + busiObj.LoadLanugeXml() + \"</xml>\");");
+            initCtr.Content.AppendLine("    this.Response.Write(\"<title>\"+PageCaption+\"</title>\");");
+            initCtr.Content.AppendLine("}");
             initCtr.Content.AppendLine("");
             #endregion InitControls
             bpoClass.AddFunction(initCtr);

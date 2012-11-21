@@ -10,3 +10,8 @@ E:\workspace\soit\ucml\workspace\BPOGen\BPOGen\obj\x86\Debug\ResolveAssemblyRefe
 G:\Workspace\project\soit\ucml\workspace\BPOGen\BPOGen\obj\x86\Debug\BPOGen.csprojResolveAssemblyReference.cache
 E:\workspace\goldframe\svnworkspace\BPOGen\BPOGen\obj\x86\Debug\BPOGen.exe
 E:\workspace\goldframe\svnworkspace\BPOGen\BPOGen\obj\x86\Debug\BPOGen.pdb
+E:\workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\obj\x86\Debug\BPOGen.exe
+E:\workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\obj\x86\Debug\BPOGen.pdb
+E:\workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\bin\Debug\BPOGen.exe
+E:\workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\bin\Debug\BPOGen.pdb
+E:\workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\obj\x86\Debug\ResolveAssemblyReference.cache

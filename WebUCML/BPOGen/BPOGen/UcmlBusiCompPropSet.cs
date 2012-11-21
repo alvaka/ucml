@@ -9,5 +9,6 @@ namespace UCML.IDE.WebUCML
     {
         public string Name;
         public string Caption;
+        public string TableName;
     }
 }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
+using System.Data.SqlClient;
 
 namespace UCML.IDE.WebUCML
 {
@@ -30,7 +30,18 @@ namespace UCML.IDE.WebUCML
             sb.Append("Password="+passwd);
             return sb.ToString();
         }
+        public static String GetPropString(SqlDataReader reader, int index)
+        {
+            if (reader.IsDBNull(index)) return "";
+            else return reader.GetString(index);
+        }
+        public static bool GetPropBool(SqlDataReader reader, int index)
+        {
+            if (reader.IsDBNull(index)) return false;
+            else return reader.GetBoolean(index);
+        }
     }
+
     public class NoCaseStringComparer : IEqualityComparer<String>
     {
         public  bool Equals(String str1,String str2)

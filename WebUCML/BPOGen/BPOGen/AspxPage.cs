@@ -9,7 +9,6 @@ namespace UCML.IDE.WebUCML
     {
         public List<AspxDirective> Directives;
         public string PageName;
-        public List<UcmlViewCompnent> VCList;//BPO包含的VC页面的集合
         public HtmlNode FormNode;
         public HtmlNode MainPanelNode;
 
@@ -17,7 +16,6 @@ namespace UCML.IDE.WebUCML
         {
             this.PageName = name;
             Directives = new List<AspxDirective>();
-            VCList = new List<UcmlViewCompnent>();
         }
 
         public AspxPage(string pageName, string title)
@@ -25,7 +23,6 @@ namespace UCML.IDE.WebUCML
         {
             this.PageName = pageName;
             Directives = new List<AspxDirective>();
-            VCList = new List<UcmlViewCompnent>();
         }
 
         public AspxPage(string name, string docType, string charset)
@@ -33,7 +30,6 @@ namespace UCML.IDE.WebUCML
         {
             this.PageName = name;
             Directives = new List<AspxDirective>();
-            VCList = new List<UcmlViewCompnent>();
         }
 
         public void InitPage()
@@ -62,12 +58,6 @@ namespace UCML.IDE.WebUCML
         { }
         public void AddCssLink(string src)
         { }
-
-        public void AddVCPage(UcmlViewCompnent vc)
-        {
-            VCList.Add(vc);
-            MainPanelNode.Append(vc.VCNode);
-        }
 
         public override string ToString()
         {

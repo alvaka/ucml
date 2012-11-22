@@ -1,0 +1,3860 @@
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<public:component>
+<public:method name="open"/>
+<public:method name="LoadResults"/>
+<public:method name="AddUseTable"/>
+<public:method name="InitBusinessEnv"/>
+<public:method name="getRootTable"/>
+<public:method name="getTaskList"/>
+<public:method name="getServiceHandle"/>
+<public:method name="ChangeBusiView"/>
+<public:method name="condiQuery"/>
+<public:method name="condiQueryEx"/>
+<public:method name="condiActorQuery"/>
+<public:method name="ExportToExcel"/>
+<public:method name="Report_Compute"/>
+<public:method name="BusinessSubmit"/>
+<public:method name="FinishTask"/>
+<public:method name="StartBCLink"/>
+<public:method name="CallbuildTreeSubNodes"/>
+<public:method name="getBCList"/>
+<public:method name="HideSelect"/>
+<public:method name="ShowSelect"/>
+
+<public:property name="BC_UCMLClassDataSet_BPOColumns" get="getBC_UCMLClassDataSet_BPOColumns"/>
+<public:event id="OnBeforeOpen"         name="onbeforeopen">
+<public:event id="OnAfterOpen"         name="onafteropen">
+<public:event id="OnBPObjectReady"         name="onbpobjectready">
+<public:event id="OnAfterCondiQuery"         name="onaftercondiquery">
+<public:method name="syncCallDelBPOCompnent"/>
+<public:method name="VC_UCMLClassDataSet_BPOListExtMenuClick"/>
+<public:property name="BusiViewModes" get="getBusiViewModes"/>
+<public:property name="VC_UCMLClassDataSet_BPOListColumns" get="getVC_UCMLClassDataSet_BPOListColumns"/>
+<public:property name="BusinessDataPacket" get="getBusinessDataPacket"/>
+</public:component>
+
+<script language ="jscript">
+var __BC_UCMLClassDataSet_BPOColumns;
+    var __BusiViewModes=null;
+var __VC_UCMLClassDataSet_BPOListColumns;
+var objColumn;
+var TaskList = new Array();
+function open()
+{
+    var	pk=createXMLObject();
+    pk.loadXML(UCMLBUSIOBJECT.innerHTML);
+    theDataPacket = pk;
+
+    var evObj = createEventObject()
+    OnBeforeOpen.fire(evObj);
+    PrepareColumn();
+    var evObj = createEventObject()
+    OnAfterOpen.fire(evObj);
+}
+
+function getBC_UCMLClassDataSet_BPOColumns()
+{
+    return __BC_UCMLClassDataSet_BPOColumns;
+}
+
+function getBusiViewModes()
+{
+    return __BusiViewModes;
+}
+
+function getVC_UCMLClassDataSet_BPOListColumns()
+{
+    return __VC_UCMLClassDataSet_BPOListColumns;
+}
+
+//--------------------------------------------------------------------------
+
+var iCallID=0;
+var iApplyCallID=-1;
+var theBPOName="BPO_bpolist";
+var BusinessID=0;
+var ServiceHandle=null;
+var UseTableList = new Array();
+var theDataPacket ;
+var iSingleCallID=9;
+var theSingleTable=null;
+var fPromptSubmit=true;
+var theDeltaData=createXMLObject();
+theDeltaData.loadXML("<root/>");
+
+function HideSelect()
+{
+	 for ( var i=0;i<UseTableList.length;i++)
+	 {
+	 		UseTableList[i].NotifyControls("HideSelect");
+	 }
+}
+
+function ShowSelect()
+{
+	 for ( var i=0;i<UseTableList.length;i++)
+	 {
+	 		UseTableList[i].NotifyControls("ShowSelect");
+	 }
+}
+function AddUseTable(DataTable)
+{
+	UseTableList[UseTableList.length]=DataTable;	
+	DataTable.DeltaData = theDeltaData;	
+}
+
+function NotifyTable(xmldoc)
+{
+	for ( var i=0;i<UseTableList.length;i++)
+	{
+		UseTableList[i].SetDataPacket(xmldoc);	
+	}
+	for ( var i=0;i<UseTableList.length;i++)
+	{
+		UseTableList[i].SetControlDataPacket(xmldoc);	
+	}
+}
+
+function NotifyTableNoneActor(xmldoc)
+{
+	for ( var i=0;i<UseTableList.length;i++)
+	{
+		if (UseTableList[i].TableType!="A")
+		    UseTableList[i].SetDataPacketAndChild(xmldoc);	
+	}
+	for ( var i=0;i<UseTableList.length;i++)
+	{
+		if (UseTableList[i].TableType!="A")
+		    UseTableList[i].SetControlDataPacket(xmldoc);	
+	}
+}
+
+function getRootTable()
+{
+    return UseTableList[0];
+}
+var COMMAND="";
+var OwnerFlow="";
+function InitBusinessEnv()
+{
+    COMMAND=getURLParameters("COMMAND")
+    var Enabled=getURLParameters("ENABLED")
+    if (Enabled=="false")
+    {
+        for ( var i=0;i<UseTableList.length;i++)
+        {
+            UseTableList[i].EnableApplets(false);
+        }
+    }
+    OwnerFlow="";
+	  ServiceHandle = eval(ServiceID);
+	  if (ServiceHandle!=null)
+	  {
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+  	}
+    NotifyTable(theDataPacket);
+    BusinessInit();
+   	var evObj = createEventObject()
+   	OnBPObjectReady.fire(evObj);
+    return;
+
+}
+
+function getServiceHandle()
+{
+    ServiceHandle = eval(ServiceID);
+    return ServiceHandle;
+}
+function getTaskList()
+{
+    return TaskList;
+}
+var  objChangeBusiView = new ChangeBusiViewObj()
+TaskList[TaskList.length] = objChangeBusiView;
+function ChangeBusiViewObj()
+{
+		var CallID;
+		this.DoResult = function(result)
+		{
+		HideMessage();
+		if(result.error==true)
+		{
+			var xfaultstring = result.errorDetail.string;
+			alert(xfaultstring);
+			return;
+		}
+
+		var pk = result.raw;
+		if (theDataPacket==null)
+		{
+			theDataPacket = pk;
+			NotifyTable(pk);
+			BusinessInit();
+		}
+		else
+		{
+			NotifyTable(pk);
+		}
+		}
+}
+
+function ChangeBusiView(viewType)
+{
+	this.ServiceHandle = eval(ServiceID);
+	if (ServiceHandle!=null)
+	{
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+			eval("objChangeBusiView.CallID =ServiceHandle."+theBPOName+"Service.callService(\"ChangeBusiView\",viewType)")
+		}
+}
+
+var  objcondiQuery = new condiQueryObj()
+TaskList[TaskList.length] = objcondiQuery;
+function condiQueryObj()
+{
+		var CallID;
+		this.DoResult = function(result)
+		{
+		    HideMessage();
+		    if(result.error==true)
+		    {
+			      var xfaultstring = result.errorDetail.string;
+			      alert(xfaultstring);
+			      return;
+		    }
+
+		    var pk = result.raw;
+		    if (theDataPacket==null)
+		    {
+			      //theDataPacket = pk;
+			      NotifyTableNoneActor(pk);
+			      BusinessInit();
+		    }
+		    else
+		    {
+			      //theDataPacket = pk;
+			      NotifyTableNoneActor(pk);
+		    }
+		    var evObj = createEventObject();
+		    OnAfterCondiQuery.fire(evObj);
+		}
+}
+
+ObjectgetTotalDataTask = new DoResultgetTotalData();
+TaskList[TaskList.length] = ObjectgetTotalDataTask;
+
+function getTotalData(BCName,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,SQLFix,TotalFields,TotalModes)
+{
+    var BCBase = eval(BCName+"Base");
+    fieldList = BCBase.fieldList; valueList = BCBase.valueList; condiIndentList = BCBase.condiIndentList; SQLCondi=BCBase.SQLCondi;
+    this.ServiceHandle=eval(ServiceID);
+    if(ServiceHandle!=null)
+    {
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+        var srv=eval("ServiceHandle."+theBPOName+"Service");
+        ObjectgetTotalDataTask.CallID=srv.callService("getTotalData",BCName,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,SQLFix,TotalFields,TotalModes);
+    }
+}
+var TotalTextBoxIndex=0;
+var TotalVCName="";
+function DoResultgetTotalData()
+{
+    this.DoResult = function(result)
+    {
+        if(result.error==false)
+        {
+            var values=event.result.value;
+            var obj = eval("ToolBar"+TotalVCName+".getItem(TotalTextBoxIndex)");
+            obj.setAttribute("Value",values);
+        }
+    }
+}
+
+    ObjectputTOExcelTask = new DoResultputTOExcel();
+    TaskList[TaskList.length] = ObjectputTOExcelTask;
+    
+    function ExportToExcel(BCName, VCObject, SQLCondi, MergerFieldIndex,  TitleTextLists)
+    {
+        ShowMessage("正在执行导出，请等待......");
+        var nFieldLists="";
+        if (MergerFieldIndex==undefined)  MergerFieldIndex="";
+        if (TitleTextLists==undefined)  TitleTextLists="";
+        for (var i=0; i<VCObject.AppletColumn.length; i++)
+        {
+            if (nFieldLists!="") nFieldLists+=";";
+            nFieldLists += VCObject.AppletColumn[i].FieldName;
+        }
+    
+        var BCBase = eval(BCName+"Base");
+        var fieldList = BCBase.fieldList; var valueList = BCBase.valueList; var condiIndentList = BCBase.condiIndentList;
+        if (SQLCondi==undefined||SQLCondi=="") SQLCondi=BCBase.SQLCondi;
+        var SQLCondiType=0;
+        this.ServiceHandle = eval(ServiceID);
+        condiIndentList="<![CDATA[" + condiIndentList + "]]>";
+        valueList="<![CDATA[" + valueList + "]]>";
+        if(ServiceHandle!=null)
+        {
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+            var srv=eval("ServiceHandle."+theBPOName+"Service");
+            ObjectputTOExcelTask.CallID=srv.callService("PutToExcelEX",BCName,nFieldLists,0,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,"",UCMLLocalResourcePath,VCObject.id,MergerFieldIndex, TitleTextLists);
+        }
+    }
+    
+    function DoResultputTOExcel()
+    {
+        this.DoResult = function(result)
+        {
+            if(result.error==false)
+            {
+                var xmldoc=event.result.raw;
+                var FiledName = event.result.value;
+                if( FiledName.length>0)
+                {
+                   window.open(FiledName) ;
+                   }
+                   else
+                   {
+                       alert("导出失败");
+                   }
+            }
+        }
+    }
+    
+function condiQuery(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,nPageCount)
+{
+	ShowMessage("正在执行查询，请等待......");
+
+var rootTable = getRootTable();
+rootTable.SetCondiList(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType);
+
+	this.ServiceHandle = eval(ServiceID);
+	if (SQLCondi==undefined)
+	{
+		SQLCondi="";
+		SQLCondiType=0;
+	}
+	if (nPageCount==undefined)
+	{
+		nPageCount=-1;
+	}
+	condiIndentList="<![CDATA[" + condiIndentList + "]]>";
+  valueList="<![CDATA[" + valueList + "]]>";
+	if (ServiceHandle!=null)
+	{
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+			eval("objcondiQuery.CallID =ServiceHandle."+theBPOName+"Service.callService('getCondiBusinessData',0,nPageCount,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType)");
+		}
+}
+
+var  objcondiQueryEx = new condiQueryExObj()
+TaskList[TaskList.length] = objcondiQueryEx;
+function condiQueryExObj()
+{
+		var CallID;
+		this.DoResult = function(result)
+		{
+		    HideMessage();
+		    if(result.error==true)
+		    {
+			      var xfaultstring = result.errorDetail.string;
+			      alert(xfaultstring);
+			      return;
+		    }
+
+		    var pk = result.raw;
+		    if (theDataPacket==null)
+		    {
+			      //theDataPacket = pk;
+			      NotifyTable(pk);
+			      BusinessInit();
+		    }
+		    else
+		    {
+			      //theDataPacket = pk;
+			      NotifyTable(pk);
+		    }
+		    var evObj = createEventObject();
+		    OnAftercondiQuery.fire(evObj);
+		}
+}
+
+function condiQueryEx(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,SubBC_SQLCondi)
+{
+	ShowMessage("正在执行查询，请等待......");
+
+var rootTable = getRootTable();
+rootTable.SetCondiList(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType);
+
+	this.ServiceHandle = eval(ServiceID);
+	if (SQLCondi==undefined)
+	{
+		SQLCondi="";
+		SQLCondiType=0;
+	}
+	condiIndentList="<![CDATA[" + condiIndentList + "]]>";
+  valueList="<![CDATA[" + valueList + "]]>";
+	if (ServiceHandle!=null)
+	{
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+			eval("objcondiQueryEx.CallID =ServiceHandle."+theBPOName+"Service.callService('getCondiBusinessDataEx',0,10,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,'',SubBC_SQLCondi)");
+		}
+}
+
+
+function condiActorQuery(TableName,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType)
+{
+	ShowMessage("正在执行查询，请等待......");
+	theSingleTable=TableName;
+	this.ServiceHandle = eval(ServiceID);
+	if (SQLCondi==undefined)
+	{
+		SQLCondi="";
+		SQLCondiType=0;
+	}
+	
+		for ( var i=0;i<UseTableList.length;i++)
+		{
+			if (UseTableList[i].TableName==TableName)
+			{
+				UseTableList[i].SetCondiList(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType);	
+				break;
+			}
+		}
+	condiIndentList="<![CDATA[" + condiIndentList + "]]>";
+  valueList="<![CDATA[" + valueList + "]]>";
+	if (ServiceHandle!=null)
+	{
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+			eval("this.iSingleCallID =ServiceHandle."+theBPOName+"Service.callService('getCondiActorData',TableName,0,10,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType)");
+		}
+}
+
+function VC_UCMLClassDataSet_BPOListExtMenuClick(cmd)
+{
+}
+
+function VC_UCMLClassDataSet_BPOListmenuready()
+{
+}
+var flowTask=false;
+function VC_UCMLClassDataSet_BPOListButtonClick()
+{
+    if (event.flatIndex==0)
+    {
+window.location="BPO_bpoedit.aspx?BusinessKeyOID="+BC_UCMLClassDataSet_BPOBase.getEmptyGuid();
+
+        return;
+    }
+    if (event.flatIndex==2)
+    {
+window.location = "BPO_bpoedit.aspx?BusinessKeyOID="+BC_UCMLClassDataSet_BPOBase.getFieldValue("UCMLClassDataSetOID");
+
+        return;
+    }
+    if (event.flatIndex==4)
+    {
+    var  guid=BC_UCMLClassDataSet_BPOBase.getFieldValue("UCMLClassDataSetOID");
+    var ret=window.confirm("删除后不可恢复，是否继续?");
+    //alert(guid);
+    if(ret){
+         BC_UCMLClassDataSet_BPOBase.Delete();
+         syncCallDelBPOCompnent(guid);
+         BusinessSubmit();
+    }
+
+
+        return;
+    }
+}
+function Report_Compute()
+{
+}
+function BusinessInit()
+{
+ToolBarVC_UCMLClassDataSet_BPOList.onbuttonclick=VC_UCMLClassDataSet_BPOListButtonClick;
+//UCML说明,类型:VC,对象ID:10727,方法类型:事件,方法名:OnJsInit,对象名称:VC_UCMLClassDataSet_BPOList
+
+//UCML说明结束
+    BC_UCMLClassDataSet_BPOBase.OnAfterInsert=BC_UCMLClassDataSet_BPOOnAfterInsert;
+//UCML说明,类型:BPO,对象ID:13947,方法类型:事件,方法名:OnJsInit,对象名称:BPO_bpolist
+
+
+//UCML说明结束
+//UCML说明,类型:BC,对象ID:10022,方法类型:事件,方法名:OnJsInit,对象名称:BC_UCMLClassDataSet_BPO
+
+//UCML说明结束
+}
+
+function BeforeSubmit()
+{
+//UCML说明,类型:BPO,对象ID:13947,方法类型:事件,方法名:OnBeforeSubmit,对象名称:BPO_bpolist
+
+//UCML说明结束
+//UCML说明,类型:BC,对象ID:10022,方法类型:事件,方法名:OnBeforeSubmit,对象名称:BC_UCMLClassDataSet_BPO
+
+//UCML说明结束
+//UCML说明,类型:VC,对象ID:10727,方法类型:事件,方法名:OnBeforeSubmit,对象名称:VC_UCMLClassDataSet_BPOList
+
+//UCML说明结束
+    return true
+}
+
+
+function AfterSubmit()
+{
+//UCML说明,类型:BPO,对象ID:13947,方法类型:事件,方法名:OnAfterSubmit,对象名称:BPO_bpolist
+
+//UCML说明结束
+//UCML说明,类型:BC,对象ID:10022,方法类型:事件,方法名:OnAfterSubmit,对象名称:BC_UCMLClassDataSet_BPO
+
+//UCML说明结束
+//UCML说明,类型:VC,对象ID:10727,方法类型:事件,方法名:OnAfterSubmit,对象名称:VC_UCMLClassDataSet_BPOList
+
+//UCML说明结束
+}
+
+function CanSubmit()
+{
+    var result=true
+    for ( var i=0;i<UseTableList.length;i++)
+    {
+        result = UseTableList[i].Valiate();
+        if (result==false) break;
+    }
+
+
+    return result
+}
+
+function BC_UCMLClassDataSet_BPOOnAfterInsert()
+{
+//UCML说明,类型:BC,对象ID:10022,方法类型:事件,方法名:OnAfterInsert,对象名称:BC_UCMLClassDataSet_BPO
+    BC_BusiCompLinkDataSetBase.Insert();
+    //BC_BusiCompLinkDataSetBase.setFieldValue('',);
+    BC_BusiViewCompLinkDataSetBase.Insert();
+
+//UCML说明结束
+}
+function BC_UCMLClassDataSet_BPOOnFieldChange()
+{
+}
+function BusinessSubmit()
+{
+	if ( CanSubmit()==false) return;
+	if ( BeforeSubmit()==false) return;
+	this.ServiceHandle = eval(ServiceID);
+	for ( var i=0;i<UseTableList.length;i++)
+	{
+			UseTableList[i].NotifyControls("Post");
+	}
+
+	if (ServiceHandle!=null)
+	{
+	ShowMessage("正在提交信息，请等待......");
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+	    var srv=eval("ServiceHandle."+theBPOName+"Service");
+	    this.iApplyCallID=srv.callService("BusinessSubmit","<![CDATA[" + theDeltaData.documentElement.xml + "]]>");
+  	}
+}
+
+function getBCList()
+{
+	return UseTableList;
+}
+
+
+function FinishTask()
+{
+	this.ServiceHandle = eval(ServiceID);
+	if (ServiceHandle!=null)
+	{
+        ServiceHandle.useService(theBPOName+".asmx?WSDL",theBPOName+"Service");
+	    eval("this.iApplyCallID =ServiceHandle."+theBPOName+"Service.callService(\"FinishTask\",(TaskID))");
+  	}
+}
+
+function LoadResults(result)
+{
+    HideMessage();
+    if(event.result.error==true)
+    {
+        var xfaultstring = event.result.errorDetail.string;
+        alert(xfaultstring);
+        return;
+    }
+
+    if(iSingleCallID == event.result.id)
+    {
+		    var pk = event.result.raw;
+        for ( var i=0;i<UseTableList.length;i++)
+        {
+	          if (theSingleTable==UseTableList[i].TableName)
+	          {
+		            UseTableList[i].SetDataPacketAndChild(pk);	
+		            break;
+	          }
+        }
+    }
+
+    if(iApplyCallID == event.result.id)
+    {
+        for ( var i=0;i<UseTableList.length;i++)
+        {
+        if (UseTableList[i].fIDENTITYKey == true)
+        {
+        fPromptSubmit=false;
+        var rows=event.result.value.split("@");
+        for(var m=0; m<rows.length; m++)
+        {
+        var fields=rows[m].split(";");
+        if (fields.length==1) break;
+        var bco=eval(fields[0]+"Base");
+        if (bco.LocateOID_GUID(fields[1])!=null)
+        bco.setFieldValueEx(bco.PrimaryKey,fields[2]);
+        }
+        break;
+        }
+        }
+		    MergeChange();
+		    if (fPromptSubmit==true)
+		        alert(event.result.value);
+        if (flowTask==true)
+        {
+            var hasRiskPoint = getURLParameters("hasRiskPoint");
+            var openBPOName=getURLParameters("BPOName")+"BPO";
+            try
+            {
+                var objTable;
+                if (hasRiskPoint && hasRiskPoint == 1) {
+                    objTable = eval("window.parent.opener.opener."+openBPOName+".getRootTable()");
+                    objTable.Refresh();
+                    window.parent.opener.close();
+                }
+                else {
+                    objTable = eval("window.parent.opener."+openBPOName+".getRootTable()");
+                    objTable.Refresh();
+                }
+            }
+            catch(e){}
+            window.parent.close();
+        }
+        flowTask=false;
+		    AfterSubmit();
+		    return;
+    }
+ 
+ 	  for ( var i=0;i<TaskList.length;i++)
+ 	  {
+ 		    var obj = TaskList[i];
+ 		    if(obj.CallID == event.result.id)
+ 		    {
+ 			      obj.DoResult(event.result);
+ 			      return;
+ 		    }
+ 	  }
+}
+
+function getBusinessDataPacket()
+{
+		return theDataPacket;
+}
+
+function MergeChange()
+{
+	while(true)
+	{
+		if (theDeltaData.documentElement.childNodes.length<=0) break;
+		var node = theDeltaData.documentElement.childNodes[0];
+		theDeltaData.documentElement.removeChild(node);
+	}
+}
+
+
+function DeltaUpdate(recordNode,FieldName,value,DataName)
+{
+	if (value==null) return;
+	var srcNode=null;
+	var changeNode=null;
+	var reocordTagName=DataName;
+	var seleNodes = theDeltaData.documentElement.selectNodes("//"+reocordTagName);
+	for (var i=0;i<seleNodes.length;i++)
+	{
+		var node = seleNodes[i];
+		if (node.getAttribute("UpdateKind")!=null)
+		{	
+			srcNode = node;
+			changeNode = seleNodes[i+1];
+			break;		
+		}
+	}
+	if ( srcNode==null )
+	{
+		var rNode = theDeltaData.createNode(1,reocordTagName,"");
+		changeNode = theDeltaData.createNode(1,reocordTagName,"");
+		rNode.setAttribute("UpdateKind", "ukModify");
+		for ( var i=0;i<recordNode.childNodes.length;i++)
+		{
+			var fnode=theDeltaData.createNode(1,recordNode.childNodes[i].nodeName,"");
+			fnode.text=recordNode.childNodes[i].text;
+			rNode.appendChild(fnode);
+		}	
+		for ( var i=0;i<recordNode.childNodes.length;i++)
+		{
+			var fnode=theDeltaData.createNode(1,recordNode.childNodes[i].nodeName,"");
+			if (fnode.nodeName==FieldName)
+			{
+				fnode.text=value;
+			}
+			else
+			{
+				fnode.text="null";
+			}
+			changeNode.appendChild(fnode);
+		}	
+		theDeltaData.documentElement.appendChild(rNode);
+		theDeltaData.documentElement.appendChild(changeNode);
+	}
+	else
+	{
+		for ( var i=0;i<changeNode.childNodes.length;i++)
+		{
+			var fnode=changeNode.childNodes[i];
+			if (fnode.nodeName==FieldName)
+			{
+				fnode.text=value;
+			}
+		}	
+	}
+}
+
+
+function getResourceData(keyName)
+{
+    var Node = theDataPacket.selectSingleNode("//ResourceData[KeyName='"+keyName+"']");
+    if (Node!=null) return Node.childNodes[1].text;
+    else return "";
+}
+
+function syncCallDelBPOCompnent(bpoid)
+{
+    var srv=eval("ServiceHandle."+theBPOName+"Service");
+    var headObj = new Object();
+    callObj = ServiceHandle.createCallOptions();
+    callObj.async = false;
+    callObj.params = new Array();
+    callObj.params.bpoid = bpoid;
+    callObj.funcName = "DelBPOCompnent";
+    callObj.SOAPHeader = new Array();
+    callObj.SOAPHeader[0] = headObj;
+
+    var result =srv.callService(callObj);
+    if(result.error==false)
+    {
+        var xmldoc=result.value;
+        alert(xmldoc);
+    }
+}
+
+var  localxml = createXMLObject();
+function CallbuildTreeSubNodes(BCName,parentFieldName,parentOID,CaptionField,node,VCName,mode)
+{
+    var srv=eval("ServiceHandle."+theBPOName+"Service");
+	var headObj = new Object();
+	callObj = ServiceHandle.createCallOptions();
+	callObj.async = false;
+	callObj.params = new Array();
+	callObj.params.BCName = BCName;
+	callObj.params.parentFieldName = parentFieldName;
+	callObj.params.parentOID = parentOID;
+	callObj.params.CaptionField = CaptionField;
+	callObj.funcName = "buildTreeSubNodes";
+	if (mode==1)
+	{
+	    callObj.funcName = "buildTreeSubNodesWithChild";
+	    callObj.params.VCName = VCName;
+	}
+	callObj.SOAPHeader = new Array();
+	callObj.SOAPHeader[0] = headObj;
+
+    var result =srv.callService(callObj);
+	if(result.error==true)
+	{
+		var xfaultstring = result.errorDetail.string;
+		alert(xfaultstring);
+		return;
+	}
+    if(result.error==false)
+    {
+        var xmldoc=result.raw;
+        var s=result.value.split("~UCMLSPLIT~");
+        if (s.length>1)
+        {
+            localxml.loadXML(s[1]);
+        	  for ( var i=0;i<UseTableList.length;i++)
+        	  {
+        		    UseTableList[i].AddDataRecords(localxml);
+        	   }
+        }
+        node.setAttribute("TreeNodeSrc",s[0]);
+    }
+}
+
+//---------------------------------------------------------------------------
+
+var theCurrentBCLink=null;
+var BCLinkWin=null;
+function StartBCLink(BCLink)
+{
+	if (BCLink.BCRunMode!=4)
+	{
+	if (BCLink.BCRunMode==5)
+	{
+	eval(BCLink.urlFuncName+"(BCLink)");
+	return;
+	}
+	var theMainPanel=window.document.forms[0];
+	var bcObject= theMainPanel.parentElement.all[BCLink.BCName+'BPO'];
+	 
+	 for ( var i=0;i<UseTableList.length;i++)
+	 {
+	 		UseTableList[i].NotifyControls("HideSelect");
+	 }
+	 
+	if (bcObject==null)
+	{
+		var sHTML ='<div id="'+BCLink.BCName+'BPO" style="Z-INDEX: 103;LEFT: 0px; BEHAVIOR: url('+UCMLLocalResourcePath+'BCClient/'+BCLink.BCName+'.htc); WIDTH: 100%; POSITION: absolute; TOP: 0px; HEIGHT: 200px"></div>';
+		theMainPanel.parentElement.insertAdjacentHTML("BeforeEnd", sHTML);
+
+		var bcObject= theMainPanel.parentElement.all[BCLink.BCName+'BPO'];
+		theCurrentBCLink=BCLink;
+		bcObject.moveable=true;;
+		bcObject.attachEvent("onreadystatechange", OnBCReady);	//-- attach event to cell --//
+	}
+	else  {
+	    bcObject.Visible=false;
+	    bcObject.BCLink=BCLink;
+	    bcObject.targetTable = eval(BCLink.targetTable + "Base");
+	    bcObject.srcFieldName = BCLink.srcFieldName;
+	    bcObject.destFieldName = BCLink.destFieldName;
+	    bcObject.Visible=true;
+	    bcObject.InitBusinessEnv();
+	 }
+	}
+	else
+	{
+	window.open(eval(BCLink.urlFuncName+"(BCLink)"),"","location=no,menubar=yes,toolbar=no,status=no,directories=no,scrollbars=yes,resizable=yes");
+	}
+	
+}
+
+function OnBCReady()
+{
+	var theMainPanel=window.document.forms[0];
+	var bcObject= theMainPanel.parentElement.all[theCurrentBCLink.BCName+'BPO'];
+	bcObject.onclose = onpopupclose;
+	bcObject.targetTable = eval(theCurrentBCLink.targetTable+"Base");
+	bcObject.srcFieldName = theCurrentBCLink.srcFieldName;
+	bcObject.destFieldName = theCurrentBCLink.destFieldName;
+	bcObject.InitApplet(theCurrentBCLink);
+}
+
+function onpopupclose()
+{
+	 for ( var i=0;i<UseTableList.length;i++)
+	 {
+	 		UseTableList[i].NotifyControls("ShowSelect");
+	 }
+}
+function PrepareColumn()
+{
+    __BC_UCMLClassDataSet_BPOColumns = new Array();
+    __BusiViewModes = new Array();
+    objColumn = new Object();
+    objColumn.FieldName = "ClassName";
+    objColumn.Caption = "类名称 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[0] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ChineseName";
+    objColumn.Caption = "类中文含义 ";
+    objColumn.Width = 448;
+    objColumn.FieldLength = 64;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[1] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "SupperClass";
+    objColumn.Caption = "继承超类 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[2] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "MotifTable";
+    objColumn.Caption = "引用主题表 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[3] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BillTable";
+    objColumn.Caption = "引用单表 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[4] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "SubDetailTable";
+    objColumn.Caption = "引用子表 ";
+    objColumn.Width = 1785;
+    objColumn.FieldLength = 255;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[5] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "OtherTable";
+    objColumn.Caption = "其他相关表 ";
+    objColumn.Width = 1785;
+    objColumn.FieldLength = 255;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[6] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "InitScript";
+    objColumn.Caption = "服务端业务初始化 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[7] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "UseRuleText";
+    objColumn.Caption = "业务规则检查脚本 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[8] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BeforeApplyScript";
+    objColumn.Caption = "服务端提交前处理 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[9] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "LeaveScript";
+    objColumn.Caption = "业务数据提交处理 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[10] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "AfterApplyScript";
+    objColumn.Caption = "服务端提交后处理 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = true;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[11] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "UsesText";
+    objColumn.Caption = "引入头文件 ";
+    objColumn.Width = 77;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[12] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fPersistence";
+    objColumn.Caption = "是否持久存储类 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[13] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DisplayFieldInfo";
+    objColumn.Caption = "引用表字段显示定义 ";
+    objColumn.Width = 133;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[14] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "FlowID";
+    objColumn.Caption = "所属流程 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[15] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ActivityID";
+    objColumn.Caption = "所属流程节点 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[16] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "isInFlow";
+    objColumn.Caption = "流程中活动 ";
+    objColumn.Width = 77;
+    objColumn.FieldLength = 1;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[17] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "TemplateName";
+    objColumn.Caption = "Web业务模板 ";
+    objColumn.Width = 560;
+    objColumn.FieldLength = 80;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "BPOTemplateOID";
+    objColumn.LookupKeyField = "BPOTemplateDataSetOID";
+    objColumn.LookupDataSet = "BPOTemplateDataSet";
+    objColumn.LookupResultField = "TemplateDisc";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 2;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[18] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DelphiTemplateName";
+    objColumn.Caption = "Delphi业务模板 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "BPOTemplateOID";
+    objColumn.LookupKeyField = "BPOTemplateDataSetOID";
+    objColumn.LookupDataSet = "BPOTemplateDataSet";
+    objColumn.LookupResultField = "TemplateDisc";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 2;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[19] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "RuleScript";
+    objColumn.Caption = "规则脚本 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[20] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "SuccessText";
+    objColumn.Caption = "规则成功文本 ";
+    objColumn.Width = 448;
+    objColumn.FieldLength = 64;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[21] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "FailText";
+    objColumn.Caption = "规则失败文本 ";
+    objColumn.Width = 448;
+    objColumn.FieldLength = 64;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[22] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "TableType";
+    objColumn.Caption = "实体表类型 ";
+    objColumn.Width = 77;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "Int";
+    objColumn.CodeTable = "TableType";
+    objColumn.fUseCodeTable = true;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[23] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fUseDependRela";
+    objColumn.Caption = "启用依赖 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[24] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DependMasterTable";
+    objColumn.Caption = "缺省依赖主表 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[25] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DependField";
+    objColumn.Caption = "依赖外键字段 ";
+    objColumn.Width = 224;
+    objColumn.FieldLength = 32;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[26] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ClassKind";
+    objColumn.Caption = "类的种类 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "Int";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[27] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "JSCIPTInit";
+    objColumn.Caption = "JSCIPT业务初始化 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[28] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "JSCIPTCheck";
+    objColumn.Caption = "JSCIPT业务数据检查 ";
+    objColumn.Width = 133;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[29] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "JSCIPTBeforeUpdate";
+    objColumn.Caption = "JSCIPT业务提交前处理 ";
+    objColumn.Width = 147;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[30] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "JSCIPTAfterApplyScript";
+    objColumn.Caption = "JSCIPT提交后处理 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = true;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[31] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fSystemUse";
+    objColumn.Caption = "系统引用 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[32] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DelphiInitScript";
+    objColumn.Caption = "Delphi业务初始化 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[33] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DelphiLeaveScript";
+    objColumn.Caption = "Delphi业务数据提交处理 ";
+    objColumn.Width = 161;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[34] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DelphiBeforeApplyScript";
+    objColumn.Caption = "Delphi提交前处理 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[35] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DelphiAfterApplyScript";
+    objColumn.Caption = "Delphi提交后处理 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = true;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[36] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DelphiCanLeaveScript";
+    objColumn.Caption = "Delphi模块能否离开 ";
+    objColumn.Width = 133;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[37] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "UseBusinessQuery";
+    objColumn.Caption = "引用业务查询 ";
+    objColumn.Width = 448;
+    objColumn.FieldLength = 64;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[38] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "FUseTreeBPO";
+    objColumn.Caption = "树型业务模式 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[39] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fBusinessData";
+    objColumn.Caption = "fBusinessData ";
+    objColumn.Width = 98;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[40] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fUseCustomerTemplate";
+    objColumn.Caption = "自定义业务模板 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[41] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fDispNavigator";
+    objColumn.Caption = "显示导航条 ";
+    objColumn.Width = 77;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[42] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "NotFinish";
+    objColumn.Caption = "定义未完成 ";
+    objColumn.Width = 77;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[43] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DescText";
+    objColumn.Caption = "说明文档 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[44] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fSysUseBPO";
+    objColumn.Caption = "系统模块 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[45] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fKeepFaceFile";
+    objColumn.Caption = "生成时保留已有界面 ";
+    objColumn.Width = 133;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[46] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fUseStoredProc";
+    objColumn.Caption = "用存储过程取数据 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[47] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "WebPage";
+    objColumn.Caption = "页面样式 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[48] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fCanUpdateRecord";
+    objColumn.Caption = "修改记录权限生效 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[49] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fRegisterBPO";
+    objColumn.Caption = "无权限限制业务 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[50] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fHavntForm";
+    objColumn.Caption = "不含Form元素 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[51] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fUseSkin";
+    objColumn.Caption = "使用皮肤模板 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[52] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "SkinSrc";
+    objColumn.Caption = "皮肤URL路径 ";
+    objColumn.Width = 3584;
+    objColumn.FieldLength = 512;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[53] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "FilePath";
+    objColumn.Caption = "文件路径 ";
+    objColumn.Width = 1400;
+    objColumn.FieldLength = 200;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[54] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BODYSTYLE";
+    objColumn.Caption = "BODY风格属性 ";
+    objColumn.Width = 3500;
+    objColumn.FieldLength = 500;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[55] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "EnableConfig";
+    objColumn.Caption = "访问权限可配置业务 ";
+    objColumn.Width = 133;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[56] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fHavePageNavi";
+    objColumn.Caption = "是否显示页面向导 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[57] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "UseingJSFile";
+    objColumn.Caption = "引用的JS文件 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[58] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fSOAAppletService";
+    objColumn.Caption = "生成SOA展现服务 ";
+    objColumn.Width = 112;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[59] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fRecordHistroy";
+    objColumn.Caption = "是否记录历史 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[60] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fAjaxSupport";
+    objColumn.Caption = "Ajax.Net 控件支持 ";
+    objColumn.Width = 126;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[61] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "IncludeMasterPage";
+    objColumn.Caption = "是否包含主页面 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[62] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "MasterPageName";
+    objColumn.Caption = "主页面名称 ";
+    objColumn.Width = 1785;
+    objColumn.FieldLength = 255;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[63] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fAutoGenKey";
+    objColumn.Caption = "主键值数据库自动生成 ";
+    objColumn.Width = 147;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[64] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "SecondLanLabel";
+    objColumn.Caption = "第二语言标签 ";
+    objColumn.Width = 896;
+    objColumn.FieldLength = 128;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[65] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ThirdLanLabel";
+    objColumn.Caption = "第三语言标签 ";
+    objColumn.Width = 896;
+    objColumn.FieldLength = 128;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[66] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fEnabledLoadVC";
+    objColumn.Caption = "展现组件可装配 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[67] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DBAutoValue";
+    objColumn.Caption = "数据库自动值主键 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[68] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BusiFilePath";
+    objColumn.Caption = "业务逻辑文件路径 ";
+    objColumn.Width = 1400;
+    objColumn.FieldLength = 200;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "VarChar";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[69] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DBViewSRNO";
+    objColumn.Caption = "视图创建序号 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "Int";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[70] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "OracleDBViewSQL";
+    objColumn.Caption = "Oracle视图语句 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[71] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fCanAssembly";
+    objColumn.Caption = "最终用户可配置修改 ";
+    objColumn.Width = 133;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[72] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fFromActivityPermiss";
+    objColumn.Caption = "业务权限来源于流程环节配置 ";
+    objColumn.Width = 189;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[73] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fXHTMLForm";
+    objColumn.Caption = "标准网页表单 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[74] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "LayoutMode";
+    objColumn.Caption = "网页布局模式 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "Int";
+    objColumn.CodeTable = "LayoutMode";
+    objColumn.fUseCodeTable = true;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[75] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "LayoutTable";
+    objColumn.Caption = "布局表样 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "Int";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[76] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ManualHtml";
+    objColumn.Caption = "手动HTML布局 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[77] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "WSPartialCode";
+    objColumn.Caption = "业务逻辑类部分代码 ";
+    objColumn.Width = 133;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[78] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ASPXPartialCode";
+    objColumn.Caption = "ASPX类部分代码 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[79] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ToolbarPos";
+    objColumn.Caption = "Toolbar位置 ";
+    objColumn.Width = 84;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "Int";
+    objColumn.CodeTable = "ToolbarPos";
+    objColumn.fUseCodeTable = true;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[80] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "IsUseBCRelation";
+    objColumn.Caption = "业务组件关系生效 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[81] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "IsTabPageParentChild";
+    objColumn.Caption = "父子布局生效 ";
+    objColumn.Width = 91;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[82] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "FitWindow";
+    objColumn.Caption = "JS版适应窗口模式 ";
+    objColumn.Width = 119;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[83] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fUCTABABS";
+    objColumn.Caption = "自由表格按绝对坐标输出 ";
+    objColumn.Width = 161;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[84] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "TemplateData";
+    objColumn.Caption = "Excel模版字段 ";
+    objColumn.Width = 98;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[85] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "TransactionType";
+    objColumn.Caption = "事务模式 ";
+    objColumn.Width = 63;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "Int";
+    objColumn.CodeTable = "TransactionType";
+    objColumn.fUseCodeTable = true;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[86] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "fMutiLangugeSupport";
+    objColumn.Caption = "多语言支持 ";
+    objColumn.Width = 77;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "CHECKBOX";
+    objColumn.FieldType = "Boolean";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[87] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BeforeLoadData";
+    objColumn.Caption = "数据装入前时刻 ";
+    objColumn.Width = 105;
+    objColumn.FieldLength = 0;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "TEXTAREA";
+    objColumn.FieldType = "Text";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "";
+    objColumn.LookupDataSet = "";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = false;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[88] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BPOTemplateOID";
+    objColumn.Caption = "BPOTemplateOID ";
+    objColumn.Width = 210;
+    objColumn.FieldLength = 30;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "UCMLKey";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "BPOTemplateDataSetOID";
+    objColumn.LookupDataSet = "BPOTemplateDataSet";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = true;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[89] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "DelphiBPOTemplateOID";
+    objColumn.Caption = "DelphiBPOTemplateOID ";
+    objColumn.Width = 210;
+    objColumn.FieldLength = 30;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "UCMLKey";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "DelphiBPOTemplateDataSetOID";
+    objColumn.LookupDataSet = "DelphiBPOTemplateDataSet";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = true;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[90] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BLB_ProjectOID";
+    objColumn.Caption = "BLB_ProjectOID ";
+    objColumn.Width = 210;
+    objColumn.FieldLength = 30;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "UCMLKey";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "BLB_ProjectDataSetOID";
+    objColumn.LookupDataSet = "BLB_ProjectDataSet";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = true;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[91] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "BLB_FolderOID";
+    objColumn.Caption = "BLB_FolderOID ";
+    objColumn.Width = 210;
+    objColumn.FieldLength = 30;
+    objColumn.DecLength = 0;
+    objColumn.EditType = "INPUT";
+    objColumn.FieldType = "UCMLKey";
+    objColumn.CodeTable = "";
+    objColumn.fUseCodeTable = false;
+    objColumn.fAllowNull = true;
+    objColumn.fDisplay = true;
+    objColumn.CurrentPos = 0;
+    objColumn.DefaultValue = "";
+    objColumn.fCanModify = true;
+    objColumn.fAllowPick = false;
+    objColumn.RoleTable = "";
+    objColumn.ForeignKeyField = "";
+    objColumn.LookupKeyField = "BLB_FolderDataSetOID";
+    objColumn.LookupDataSet = "BLB_FolderDataSet";
+    objColumn.LookupResultField = "";
+    objColumn.QueryBPOID = "";
+    objColumn.fForeignKey = true;
+    objColumn.FieldKind = 0;
+    objColumn.IsMultiValueField = false;
+    objColumn.MultiValueTable = "";
+    objColumn.fFunctionInitValue = false;
+    objColumn.InitValueFunc = "";
+    objColumn.ExcelColNo = 0;
+    __BC_UCMLClassDataSet_BPOColumns[92] = objColumn;
+
+    __VC_UCMLClassDataSet_BPOListColumns = new Array();
+    objColumn = new Object();
+    objColumn.FieldName = "ClassName";
+    objColumn.Caption = "业务单元名称 ";
+    objColumn.fDisplay = true;
+    objColumn.fCanModify = true;
+    objColumn.CurrentPos = 0;
+    objColumn.Width = 210;
+    objColumn.fFixColumn = false;
+    objColumn.FixColumnValue = "";
+    objColumn.fCustomerControl = false;
+    objColumn.CustomerControlHTC = "";
+    objColumn.ControlID = "";
+    objColumn.EditContrl = "";
+    __VC_UCMLClassDataSet_BPOListColumns[0] = objColumn;
+
+    objColumn = new Object();
+    objColumn.FieldName = "ChineseName";
+    objColumn.Caption = "中文含义 ";
+    objColumn.fDisplay = true;
+    objColumn.fCanModify = true;
+    objColumn.CurrentPos = 1;
+    objColumn.Width = 210;
+    objColumn.fFixColumn = false;
+    objColumn.FixColumnValue = "";
+    objColumn.fCustomerControl = false;
+    objColumn.CustomerControlHTC = "";
+    objColumn.ControlID = "";
+    objColumn.EditContrl = "";
+    __VC_UCMLClassDataSet_BPOListColumns[1] = objColumn;
+
+}
+function getURLParameters(ParamName)
+{
+				var sURL = window.document.URL.toString();
+
+				if (sURL.indexOf("?") > 0)
+				{
+								var arrParams = sURL.split("?");
+
+								var arrURLParams = arrParams[1].split("&");
+
+								var arrParamNames = new Array(arrURLParams.length);
+								var arrParamValues = new Array(arrURLParams.length);
+
+								var i = 0;
+								for (i=0;i<arrURLParams.length;i++)
+								{
+												var sParam =  arrURLParams[i].split("=");
+												arrParamNames[i] = sParam[0];
+												if (sParam[1] != "")
+																arrParamValues[i] = unescape(sParam[1]);
+												else
+																arrParamValues[i] = "No Value";
+								}
+
+								for (i=0;i<arrURLParams.length;i++)
+								{
+												if (arrParamNames[i]==ParamName) return  arrParamValues[i];
+								}
+				}
+				return null;
+}
+
+function createXMLObject() 
+{
+	try 
+	{
+		var l_objActiveXObject = new ActiveXObject("Msxml2.DOMDocument");
+		return l_objActiveXObject;
+	}
+	catch(e) 
+	{
+		try 
+		{
+			l_objActiveXObject = new ActiveXObject("Msxml.DOMDocument");
+			return l_objActiveXObject;
+		}
+		catch(e) 
+		{
+			try 
+			{
+				l_objActiveXObject = new ActiveXObject("Microsoft.XMLDOM");
+				return l_objActiveXObject;
+			}
+			catch(e) 
+			{ 
+				errorHandler(e, "createXMLObject"); 
+			}
+		}
+	}
+}
+
+	function ShowMessage(str)
+{
+	MsgPanel.style.visibility="visible";
+	MsgPanel.innerHTML=str;
+}
+
+function HideMessage()
+{
+	MsgPanel.style.visibility="hidden";
+}
+
+</script>

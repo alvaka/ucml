@@ -57,8 +57,11 @@ namespace UCML.IDE.WebUCML
             ubpo.VcTabList = PrepareVcTab(conn, bpoid);
             ubpo.BuildPageCs();
             ubpo.BuildAspxPage();
+            ubpo.BuildAsmxCs();
+
             //Console.Write(ubpo.PageCs.ToString());
-            Console.Write(ubpo.Page.ToString());
+            //Console.Write(ubpo.Page.ToString());
+            Console.Write(ubpo.AsmxCs.ToString());
             Console.ReadKey();
             
         }

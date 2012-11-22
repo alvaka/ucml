@@ -1,0 +1,149 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+<PropertyGroup>
+  <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+  <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+  <ProductVersion></ProductVersion>
+  <SchemaVersion>2.0</SchemaVersion>
+  <ProjectGuid>{090C23C5-AE12-4ECF-B8D8-969588F4523E}</ProjectGuid>
+  <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+  <OutputType>Library</OutputType>
+  <AppDesignerFolder>Properties</AppDesignerFolder>
+  <RootNamespace>UCMLWork</RootNamespace>
+  <AssemblyName>BPO_bpolist</AssemblyName>
+  <FileUpgradeFlags>
+  </FileUpgradeFlags>
+  <UpgradeBackupLocation>
+  </UpgradeBackupLocation>
+  <OldToolsVersion>2.0</OldToolsVersion>
+  <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+</PropertyGroup>
+<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+  <DebugSymbols>true</DebugSymbols>
+  <DebugType>full</DebugType>
+  <Optimize>false</Optimize>
+  <OutputPath>bin\</OutputPath>
+  <DefineConstants>DEBUG;TRACE</DefineConstants>
+  <ErrorReport>prompt</ErrorReport>
+  <WarningLevel>4</WarningLevel>
+</PropertyGroup>
+<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+  <DebugType>pdbonly</DebugType>
+  <Optimize>true</Optimize>
+  <OutputPath>bin\</OutputPath>
+  <DefineConstants>TRACE</DefineConstants>
+  <ErrorReport>prompt</ErrorReport>
+  <WarningLevel>4</WarningLevel>
+</PropertyGroup>
+
+<ItemGroup>
+                <Reference Include="System" />
+                <Reference Include="System.Core">
+                </Reference>
+                <Reference Include="System.Data" />
+                <Reference Include="System.Data.DataSetExtensions">
+                </Reference>
+                <Reference Include="System.Drawing" />
+                <Reference Include="System.Web" />
+                <Reference Include="System.Web.Extensions">
+                </Reference>
+                <Reference Include="System.Web.Extensions.Design">
+                </Reference>
+                <Reference Include="System.Web.Services" />
+                <Reference Include="System.XML" />
+                <Reference Include="System.EnterpriseServices" />
+                <Reference Include="microsoft.web.ui.webcontrols">
+                  <HintPath>bin\microsoft.web.ui.webcontrols.dll</HintPath>
+                </Reference>
+                <Reference Include = "UCMLBase">
+                		<HintPath>E:\workspace\goldframe\web_platform\UCMLWeb\UCMLBase\bin\UCMLBase.dll</HintPath>
+                </Reference>
+                <Reference  Include = "SysDBModel">
+                		<HintPath>E:\workspace\goldframe\web_platform\UCMLWeb\SysDBModel\bin\SysDBModel.dll</HintPath>
+                </Reference>
+                <Reference Include = "WorkFlow">
+                    <HintPath>E:\workspace\goldframe\web_platform\UCMLWeb\Common\bin\WorkFlow.dll</HintPath>
+                </Reference>
+                <Reference Include = "DBLayer">
+                    <HintPath>E:\workspace\goldframe\web_platform\UCMLWeb\DBModel\bin\DBLayer.dll</HintPath>
+                </Reference>
+                <Reference Include="UCMLBC">
+                    <HintPath>bin\UCMLBC.dll</HintPath>
+                </Reference>
+                <Reference Include="UCMLSystemWeb">
+                    <HintPath>bin\UCMLSystemWeb.dll</HintPath>
+                </Reference>
+                <Reference Include = "UCML.WebControls">
+                   <Name>UCML.WebControls</Name>
+                   <HintPath>bin\UCML.WebControls.dll</HintPath>
+                </Reference>
+                <Reference Include = "solpartwebcontrols">
+                   <Name>solpartwebcontrols</Name>
+                   <HintPath>bin\solpartwebcontrols.dll</HintPath>
+                </Reference>
+                <Reference Include = "DBstep">
+                   <Name>DBstep</Name>
+                   <HintPath>bin\iMsgServer2000.dll</HintPath>
+                </Reference>
+                <Reference Include = "VIP_PubClass">
+                   <Name>VIP_PubClass</Name>
+                   <HintPath>bin\VIP_PubClass.dll</HintPath>
+                </Reference>
+                <Reference Include = "UCMLReport2">
+                   <Name>UCMLReport2</Name>
+                   <HintPath>bin\Interop.UCMLReport2.dll</HintPath>
+                </Reference>
+                <Reference Include = "UCMLCT">
+                   <Name>UCMLCT</Name>
+                   <HintPath>bin\Interop.UCMLCT.dll</HintPath>
+                </Reference>
+                <Reference Include = "ComponentArt">
+                   <Name>ComponentArt</Name>
+                   <HintPath>bin\ComponentArt.Web.UI.dll</HintPath>
+                </Reference>
+                <Reference Include = "UCMLBC">
+                   <Name>UCMLBC</Name>
+                   <HintPath>bin\UCMLBC.dll</HintPath>
+                </Reference>
+</ItemGroup>
+<ItemGroup>
+  <Content Include="UserLogin.aspx" />
+                <Content Include = "BPO_bpolist.asmx"/>
+                <Compile Include = "BPO_bpolist.asmx.cs">
+                    <DependentUpon>BPO_bpolist.asmx</DependentUpon>
+                    <SubType>Component</SubType>
+                </Compile>
+                <Content Include= "BPO_bpolist.aspx"/>
+                <Compile Include = "BPO_bpolist.aspx.cs">
+                    <DependentUpon>BPO_bpolist.aspx</DependentUpon>
+                    <SubType>ASPXCodeBehind</SubType>
+                </Compile>
+                <Compile Include = "BPO_bpolist.aspx.designer.cs">
+                    <DependentUpon>BPO_bpolist.aspx</DependentUpon>
+                </Compile>
+                <Content Include="BPO_bpolist.htc"/>
+</ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>False</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>0</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>
+          </IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

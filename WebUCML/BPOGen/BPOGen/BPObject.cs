@@ -11,6 +11,7 @@ namespace UCML.IDE.WebUCML
         public AspxPage Page;
         private CSharpDoc _PageCs;
         private CSharpDoc PageDesignerCs;
+        public CSharpDoc AsmxCs;
         private BpoPropertySet BpoPropSet;
         public  List<UcmlVcTabPage> VcTabList;
         private List<UcmlBusiCompPropSet> BCList;
@@ -33,6 +34,7 @@ namespace UCML.IDE.WebUCML
             Page = new AspxPage(bps.Name + ".aspx",bps.Capiton);
             PageCs = new CSharpDoc(bps.Name+".aspx.cs", Namespace);
             PageDesignerCs = new CSharpDoc(bps.Name + ".designer.cs", Namespace);
+            AsmxCs = new CSharpDoc(this.Name, Namespace);
 
             VcTabList = new List<UcmlVcTabPage>();
             BCList = new List<UcmlBusiCompPropSet>();
@@ -576,6 +578,277 @@ namespace UCML.IDE.WebUCML
                 }
             }
             return true; 
+        }
+        public bool BuildAsmxCs()
+        {
+            AsmxCs.ReferenceNS.Add("System.Collections;");
+            AsmxCs.ReferenceNS.Add("System.Data");
+            AsmxCs.ReferenceNS.Add("System.Xml");
+            AsmxCs.ReferenceNS.Add("System.ComponentModel");
+            AsmxCs.ReferenceNS.Add("System.Web.Services");
+            AsmxCs.ReferenceNS.Add("System.Web");
+            AsmxCs.ReferenceNS.Add("System.Data.SqlClient");
+            AsmxCs.ReferenceNS.Add("System.Diagnostics");
+            AsmxCs.ReferenceNS.Add("DBLayer");
+
+            CSharpClass asmxClass = new CSharpClass(this.Name+"Service");
+            asmxClass.AccessAuth = AccessAuthority.PUBLIC;
+            asmxClass.IsPartial = true;
+            asmxClass.BaseClass = "UCMLCommon.UCMLWSBPObject";
+            //添加字段
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                //添加dsBCName字段
+                CSharpClassField bcTable = new CSharpClassField("DataTable", "ds" + bc.Name);
+                bcTable.AccessAuth = AccessAuthority.PRIVATE;
+                asmxClass.FieldList.Add(bcTable);
+                //添加dsBCNameBase字段
+                CSharpClassField bcBase = new CSharpClassField("UCMLCommon.UseEntityClass", "ds" + bc.Name + "Base");
+                bcBase.AccessAuth = AccessAuthority.PRIVATE;
+                asmxClass.FieldList.Add(bcBase);
+                //添加BCNameColumn字段
+                CSharpClassField bcColumn = new CSharpClassField("UCMLCommon.BusinessColumn[]", bc.Name + "Column");
+                bcColumn.AccessAuth = AccessAuthority.PUBLIC;
+                asmxClass.FieldList.Add(bcColumn);
+                //添加BCNameCondiColumn字段
+                CSharpClassField bcCondiColumn = new CSharpClassField("UCMLCommon.BusinessColumn[]", bc.Name + "CondiColumn");
+                bcCondiColumn.AccessAuth = AccessAuthority.PUBLIC;
+                asmxClass.FieldList.Add(bcCondiColumn);
+            }
+            //添加Column字段
+            CSharpClassField column = new CSharpClassField("UCMLCommon.BusinessColumn", "column");
+            column.AccessAuth = AccessAuthority.PRIVATE;
+            asmxClass.FieldList.Add(column);
+
+            //添加 IContainer字段
+            CSharpClassField container = new CSharpClassField("IContainer", "components");
+            container.AccessAuth = AccessAuthority.PRIVATE;
+            container.InitStatment = "null";
+            asmxClass.FieldList.Add(container);
+            //添加函数
+            //无参数构造函数
+            asmxClass.DefaultConstruct.Content.AppendLine("OwnerFlow=\"\";");
+            asmxClass.DefaultConstruct.Content.AppendLine("OwnerActivity=\"\"");
+            asmxClass.DefaultConstruct.Content.AppendLine("InFlow=false;");
+            asmxClass.DefaultConstruct.Content.AppendLine("fSystemBPO="+this.BpoPropSet.fSystemBPO+";");
+            asmxClass.DefaultConstruct.Content.AppendLine("fRegisterBPO"+this.BpoPropSet.fRegisterBPO+";");
+            asmxClass.DefaultConstruct.Content.AppendLine("fEnableConfig"+this.BpoPropSet.fEnableConfig+";");
+            asmxClass.DefaultConstruct.Content.AppendLine("fFromActivityPermiss=false;");
+            asmxClass.DefaultConstruct.Content.AppendLine("fTransactionType = TransactionType.tsDB;");
+            asmxClass.DefaultConstruct.Content.AppendLine("InitializeComponent();");
+            
+            //添加InitiallizeComponent函数
+            CSharpFunction InitializeComponent = new CSharpFunction("InitializeComponent");
+            InitializeComponent.AccessAuth = AccessAuthority.PRIVATE;
+            InitializeComponent.ReturnType = "void";
+            asmxClass.AddFunction(InitializeComponent);
+
+            //添加Dispose函数
+            CSharpFunction dispose = new CSharpFunction("Dispose");
+            dispose.AccessAuth = AccessAuthority.PROTECTED;
+            dispose.ReturnType = "void";
+            dispose.IsOverride = true;
+            dispose["bool"] = "disposing";
+            dispose.Content.AppendLine("if(disposing && components != null)");
+      		dispose.Content.AppendLine("{");
+      	    dispose.Content.AppendLine("    components.Dispose();");
+      		dispose.Content.AppendLine("}");
+            dispose.Content.AppendLine("base.Dispose(disposing);");
+            asmxClass.AddFunction(dispose);
+
+            //添加RegisterUseTable 函数PreparePropertyList
+            CSharpFunction regUseTable = new CSharpFunction("RegisterUseTable");
+            regUseTable.AccessAuth = AccessAuthority.PUBLIC;
+            regUseTable.IsOverride = true;
+            regUseTable.ReturnType = "void";
+            //RegisterUseTable函数体
+            regUseTable.Content.AppendLine("BPOName = \""+this.Name+"\";");
+            regUseTable.Content.AppendLine("UseEntityArray = new UCMLCommon.UseEntityClass["+BCList.Count+"];");
+            regUseTable.Content.AppendLine("UCMLCommon.UseEntityClass item;");
+            int index = 0;
+            foreach (UcmlBusiCompPropSet bc in BCList)
+            {
+                regUseTable.Content.AppendLine("item = new UCMLCommon.UseEntityClass();");
+                regUseTable.Content.AppendLine("item.TableName = \""+bc.TableName+"\";");
+                regUseTable.Content.AppendLine("item.BCName = \""+bc.Name+"\";");
+                regUseTable.Content.AppendLine("item.dataTable = "+bc.Name+";");
+                regUseTable.Content.AppendLine("item.entityType = UCMLCommon.EntityType.MOTIF;");
+                regUseTable.Content.AppendLine("item.Columns = "+bc.Name+"Column;");
+                regUseTable.Content.AppendLine("item.condiColumns = "+bc.Name+"CondiColumn;");
+                regUseTable.Content.AppendLine("item.DBObjectType = typeof(DBLayer."+bc.Name+");");
+                regUseTable.Content.AppendLine("item.DaoType = typeof(DBLayer."+bc.Name+");");
+                regUseTable.Content.AppendLine("item.FieldInfoArray = "+bc.Name+"Column;");
+                regUseTable.Content.AppendLine("item.DBType = UCMLCommon.DBType.MSSQL;");//数据库连接类型
+                regUseTable.Content.AppendLine("item.Provider = UCMLCommon.DBProvider.MSSQLNA;");
+                regUseTable.Content.AppendLine("item.DataOwnerType = (UCMLCommon.DataOwnerType)(0);");
+                regUseTable.Content.AppendLine("item.DataAccessControlFieldName = \"\";");
+                regUseTable.Content.AppendLine("item.CatalogFieldName = \"\";");
+                regUseTable.Content.AppendLine("item.CatalogFieldValue = \"\";");
+                regUseTable.Content.AppendLine("item.LinkKeyName = \"\";");
+                regUseTable.Content.AppendLine("item.LinkKeyType = 46;");
+                regUseTable.Content.AppendLine("item.PK_COLUMN_NAME = \"\";");
+                regUseTable.Content.AppendLine("item.CascadeDeleteMode = 1;");
+                regUseTable.Content.AppendLine("item.CascadeTableName = \"\";");
+                regUseTable.Content.AppendLine("item.CascadeFKName = \"\";");
+                regUseTable.Content.AppendLine("item.SelectLastFix = \"\";");
+                regUseTable.Content.AppendLine("item.WhereLastFix = \"\";");
+                regUseTable.Content.AppendLine("item.IsSODMode = false;");
+                regUseTable.Content.AppendLine("item.fCustomerSQL = false;");
+                regUseTable.Content.AppendLine("item.CustomerSQLSelect = \"\";");
+                regUseTable.Content.AppendLine("item.AllowModifyJION = false;");
+                regUseTable.Content.AppendLine("item.AllowModifyFK = \"\";");
+                regUseTable.Content.AppendLine("item.fNumToString =  false;");
+                regUseTable.Content.AppendLine("item.PageCount = 10;");
+                regUseTable.Content.AppendLine("item.fNotReadData = false;");
+                regUseTable.Content.AppendLine("item.IsRootBC = true;");
+                regUseTable.Content.AppendLine("item.JoinInfo = new UCMLJoinInfo[0];");
+                regUseTable.Content.AppendLine("item.BusiViewModes = new UCMLCommon.UCMLBusiViewMode[0];");
+                regUseTable.Content.AppendLine(" if (fLoalClass)");
+                regUseTable.Content.AppendLine("    item.BuildDataTableEx();");
+                regUseTable.Content.AppendLine("if (item.dataTable.Columns.Count==0)");
+                regUseTable.Content.AppendLine("{");
+                regUseTable.Content.AppendLine("    for ( int i=0; i<item.Columns.Length;i++)");
+                regUseTable.Content.AppendLine("    {");
+                regUseTable.Content.AppendLine("        item.dataTable.Columns.Add(new DataColumn(item.Columns[i].FieldName, SystemTypeToCSharp(item.Columns[i].FieldType)));");
+                regUseTable.Content.AppendLine("    }");
+                regUseTable.Content.AppendLine("}");
+                regUseTable.Content.AppendLine("item.fHaveUCMLKey = true;");
+                regUseTable.Content.AppendLine("item.fIDENTITYKey = false;");
+                regUseTable.Content.AppendLine("item.BaseKeyField = \""+bc.TableName+"OID\";");
+                regUseTable.Content.AppendLine(" UseEntityArray["+index+"] = item;");
+                index++;
+            }
+            
+            asmxClass.AddFunction(regUseTable);
+
+            //添加PreparePropertyList 函数
+            CSharpFunction prePropertyList = new CSharpFunction("PreparePropertyList");
+            prePropertyList.AccessAuth = AccessAuthority.PROTECTED;
+            prePropertyList.IsOverride = true;
+            prePropertyList.ReturnType = "void";
+            prePropertyList.Content.AppendLine("if (PropertyList.Columns.Count==0)");
+            prePropertyList.Content.AppendLine("{");
+            prePropertyList.Content.AppendLine("}");
+            asmxClass.AddFunction(prePropertyList);
+
+            //添加ReadPropertyList 函数
+            CSharpFunction ReadPropertyList = new CSharpFunction("ReadPropertyList");
+            ReadPropertyList.AccessAuth = AccessAuthority.PROTECTED;
+            ReadPropertyList.IsOverride = true;
+            ReadPropertyList.ReturnType = "void";
+            ReadPropertyList.Content.AppendLine("if (PropertyList.Columns.Count==0)");
+            ReadPropertyList.Content.AppendLine("{");
+            ReadPropertyList.Content.AppendLine("}");
+            asmxClass.AddFunction(ReadPropertyList);
+
+            //添加PrepareColumn 函数
+            CSharpFunction PrepareColumn = new CSharpFunction("PrepareColumn");
+            PrepareColumn.AccessAuth = AccessAuthority.PUBLIC;
+            PrepareColumn.IsOverride = true;
+            PrepareColumn.ReturnType = "void";
+            //函数体
+            foreach(UcmlBusiCompPropSet bc in this.BCList)
+            {
+                PrepareColumn.Content.AppendLine(bc.Name+"Column = LoadColumnFromXML(\""+bc.Name+"\");");
+                PrepareColumn.Content.AppendLine("if ("+bc.Name+"Column == null)");
+                PrepareColumn.Content.AppendLine("{");
+                PrepareColumn.Content.AppendLine("    "+bc.Name+"Column = new UCMLCommon.BusinessColumn["+bc.Columns.Count+"];");
+                int i = 0;
+                foreach (BusiCompColumn col in bc.Columns)
+                {
+                    PrepareColumn.Content.AppendLine("column = new UCMLCommon.BusinessColumn();");
+                    PrepareColumn.Content.AppendLine("column.FieldName = \""+col.FieldName+"\";");
+                    PrepareColumn.Content.AppendLine("column.fDisplay = "+col.fDisplay+"; ");
+                    PrepareColumn.Content.AppendLine("column.fCanModify = "+col.fCanModify+";");
+                    PrepareColumn.Content.AppendLine("column.Pos = "+col.Pos+";");
+                    PrepareColumn.Content.AppendLine("column.Width = "+col.Width+";");
+                    PrepareColumn.Content.AppendLine("column.FieldType = "+col.FieldType+";");
+                    PrepareColumn.Content.AppendLine("column.StatMode = "+col.StatMode+";");
+                    PrepareColumn.Content.AppendLine("column.SortMode = "+col.SortMode+";");
+                    PrepareColumn.Content.AppendLine("column.fGroupBy = "+col.fGroupBy+"; ");
+                    PrepareColumn.Content.AppendLine("column.Caption = \""+col.Caption+"\";");
+                    PrepareColumn.Content.AppendLine("column.EditType = \""+col.EditType+"\";");
+                    PrepareColumn.Content.AppendLine("column.CodeTable = \""+col.CodeTable+"\";");
+                    PrepareColumn.Content.AppendLine("column.fUseCodeTable = "+col.fUseCodeTable+";");
+                    PrepareColumn.Content.AppendLine("column.fAllowNull = "+col.fAllowNull+";");
+                    PrepareColumn.Content.AppendLine("column.CurrentPos = "+col.CurrentPos+";");
+                    PrepareColumn.Content.AppendLine("column.DefaultValue = \""+col.DefaultValue+"\";");
+                    PrepareColumn.Content.AppendLine("column.fAllowPick = "+col.fAllowPick+";");
+                    PrepareColumn.Content.AppendLine("column.ForeignKeyField = \""+col.ForeignKeyField+"\";");
+                    PrepareColumn.Content.AppendLine("column.LookupKeyField = \""+col.LookupKeyField+"\";");
+                    PrepareColumn.Content.AppendLine("column.LookupDataSet = \""+col.LookupDataSet+"\";");
+                    PrepareColumn.Content.AppendLine("column.LookupResultField = \""+col.LookupResultField+"\";");
+                    PrepareColumn.Content.AppendLine("column.fForeignKey = "+col.fForeignKey+";");
+                    PrepareColumn.Content.AppendLine("column.FieldKind = "+col.FieldKind+";");
+                    PrepareColumn.Content.AppendLine("column.CustomSQLColumn = \""+col.CustomSQLColumn+"\";");
+                    PrepareColumn.Content.AppendLine("column.ExcelColNo = "+col.ExcelColNo+";");
+                    PrepareColumn.Content.AppendLine(bc.Name+"Column["+i+"] = column;");
+                    PrepareColumn.Content.AppendLine("");
+                }
+                PrepareColumn.Content.AppendLine();
+            }
+            asmxClass.AddFunction(PrepareColumn);
+
+            //添加ReadFromKPISection 函数
+            CSharpFunction ReadFromKPISection = new CSharpFunction("ReadFromKPISection");
+            ReadFromKPISection.AccessAuth = AccessAuthority.PUBLIC;
+            ReadFromKPISection.ReturnType = "void";
+            asmxClass.AddFunction(ReadFromKPISection);
+
+            //添加WriteToKPISection 函数
+            CSharpFunction WriteToKPISection = new CSharpFunction("WriteToKPISection");
+            WriteToKPISection.AccessAuth = AccessAuthority.PUBLIC;
+            WriteToKPISection.ReturnType = "void";
+            asmxClass.AddFunction(WriteToKPISection);
+
+            //添加ReadDataFromFlow 函数
+            CSharpFunction ReadDataFromFlow = new CSharpFunction("ReadDataFromFlow");
+            ReadDataFromFlow.AccessAuth = AccessAuthority.PUBLIC;
+            ReadDataFromFlow.IsOverride = true;
+            ReadDataFromFlow.ReturnType = "void";
+            asmxClass.AddFunction(ReadDataFromFlow);
+
+            //添加ReadDataFromFlowEx 函数
+            CSharpFunction ReadDataFromFlowEx = new CSharpFunction("ReadDataFromFlowEx");
+            ReadDataFromFlowEx.AccessAuth = AccessAuthority.PUBLIC;
+            ReadDataFromFlowEx.IsOverride = true;
+            ReadDataFromFlowEx.ReturnType = "void";
+            ReadDataFromFlowEx.Content.AppendLine("Object obj=null;");
+            asmxClass.AddFunction(ReadDataFromFlowEx);
+
+            //添加SaveDataToFlow 函数
+            CSharpFunction SaveDataToFlow = new CSharpFunction("SaveDataToFlow");
+            SaveDataToFlow.AccessAuth = AccessAuthority.PUBLIC;
+            SaveDataToFlow.IsOverride = true;
+            SaveDataToFlow.ReturnType = "void";
+            asmxClass.AddFunction(SaveDataToFlow);
+
+            //添加BusinessInit 函数
+            CSharpFunction BusinessInit = new CSharpFunction("BusinessInit");
+            BusinessInit.AccessAuth = AccessAuthority.PROTECTED;
+            BusinessInit.IsOverride = true;
+            BusinessInit.ReturnType = "void";
+            BusinessInit.Content.AppendLine("base.BusinessInit();");
+            asmxClass.AddFunction(BusinessInit);
+
+            //添加BeforeBusinessSubmit 函数
+            CSharpFunction BeforeBusinessSubmit = new CSharpFunction("BeforeBusinessSubmit");
+            BeforeBusinessSubmit.AccessAuth = AccessAuthority.PROTECTED;
+            BeforeBusinessSubmit.IsOverride = true;
+            BeforeBusinessSubmit.ReturnType = "bool";
+            BeforeBusinessSubmit.Content.AppendLine("return true;");
+            asmxClass.AddFunction(BeforeBusinessSubmit);
+
+            //添加AfterBusinessSubmit 函数
+            CSharpFunction AfterBusinessSubmit = new CSharpFunction("AfterBusinessSubmit");
+            AfterBusinessSubmit.AccessAuth = AccessAuthority.PROTECTED;
+            AfterBusinessSubmit.IsOverride = true;
+            AfterBusinessSubmit.ReturnType = "void";
+            asmxClass.AddFunction(AfterBusinessSubmit);
+
+
+            AsmxCs.InnerClass.Add(asmxClass);
+            return true;
         }
     }
 }

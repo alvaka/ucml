@@ -16,6 +16,7 @@ namespace UCML.IDE.WebUCML
         public List<CSharpClassAttribute> AttributeList;
         public List<CSharpFunction> FunctionList;
         public string BaseClass;
+        public CSharpFunction DefaultConstruct;
 
         public CSharpClass(string name)
         {
@@ -25,7 +26,8 @@ namespace UCML.IDE.WebUCML
             AttributeList = new List<CSharpClassAttribute>();
             this.AccessAuth = AccessAuthority.PRIVATE;
             this.BaseClass = "";
-            FunctionList.Add(CSharpFunction.GetConstruction(name));
+            DefaultConstruct = CSharpFunction.GetConstruction(name);
+            FunctionList.Add(DefaultConstruct);
         }
         public void AddFunction(CSharpFunction fun)
         {

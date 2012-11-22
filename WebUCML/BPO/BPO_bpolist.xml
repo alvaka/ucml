@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<UCMLBPO>
+<BCName>BC_UCMLClassDataSet_BPO</BCName>
+<TableName>UCMLClassDataSet</TableName>
+<fRootBC>true</fRootBC>
+<LinkKeyName></LinkKeyName>
+<PK_COLUMN_NAME></PK_COLUMN_NAME>
+<TableType>M</TableType>
+</UCMLBPO>

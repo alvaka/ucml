@@ -49,6 +49,7 @@
     <Compile Include="CSharpClass.cs" />
     <Compile Include="CSharpDoc.cs" />
     <Compile Include="CssContext.cs" />
+    <Compile Include="HtcDoc.cs" />
     <Compile Include="HtmlDoc.cs" />
     <Compile Include="HtmlNode.cs" />
     <Compile Include="JSContext.cs" />

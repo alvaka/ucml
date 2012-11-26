@@ -10,6 +10,16 @@ namespace UCML.IDE.WebUCML
         public string Name;
         public string Caption;
         public string TableName;
+        public bool IsRootBC;
+        public bool fIDENTITYKey;
+        public bool AllowModifyJION;
+        public bool fHaveUCMLKey;
+        public string PrimaryKey;
+        public string LinkKeyName;
+        public string PK_COLUMN_NAME;
+
+        public bool ChangeOnlyOwnerBy;
+
         public List<BusiCompColumn> Columns;
 
         public UcmlBusiCompPropSet()
@@ -21,11 +31,13 @@ namespace UCML.IDE.WebUCML
     public class BusiCompColumn
     {
         public string FieldName ="";
+        public int FieldLength;
+        public int DecLength;
         public bool   fDisplay = false; 
         public bool   fCanModify = false; 
         public int    Pos = 0;
         public int    Width = 0;
-        public int    FieldType = 46;
+        public int    FieldType = 0;
         public int    StatMode = 0;
         public int    SortMode = 0;
         public bool   fGroupBy = false; 
@@ -44,6 +56,12 @@ namespace UCML.IDE.WebUCML
         public bool   fForeignKey = false;
         public int    FieldKind = 0;
         public string CustomSQLColumn = "";
+        public string RoleTable;
         public int    ExcelColNo = 0;
+        public string QueryBPOID;
+        public bool IsMultiValueField;
+        public string MultiValueTable;
+        public bool fFunctionInitValue;
+        public string InitValueFunc;
     }
 }

@@ -9,12 +9,15 @@ namespace UCML.IDE.WebUCML
     {
         private Dictionary<string, string> JsStatement;
         private List<string> JsDeclaration;
-        private List<JsFunction> JsFuncs;
+        public List<JsFunction> JsFuncs;
+        public StringBuilder Content;
+
         public JsContext()
         {
             JsFuncs = new List<JsFunction>();
             JsDeclaration = new List<string>();
             JsStatement = new Dictionary<string, string>();
+            Content = new StringBuilder();
         }
 
         public HtmlNode GetJsBlockNode()
@@ -30,7 +33,7 @@ namespace UCML.IDE.WebUCML
         {
             JsFunction func=new JsFunction();
             func.Name=name;
-            func.Content=text;
+            func.Content.Append(text);
             JsFuncs.Add(func);
         }
 
@@ -55,6 +58,7 @@ namespace UCML.IDE.WebUCML
             {
                 foreach (string var in JsStatement.Keys) sb.AppendLine(var+"="+JsStatement[var]+";");
             }
+            sb.Append(Content);
             if (JsFuncs.Count != 0)
             {
                 foreach (JsFunction fun in JsFuncs) sb.AppendLine(fun.ToString());
@@ -75,10 +79,17 @@ namespace UCML.IDE.WebUCML
     {
         public string Name;
         public List<string> Params;
-        public string Content;
+        public StringBuilder Content;
         public JsFunction()
         {
             Params = new List<string>();
+            Content = new StringBuilder();
+        }
+        public JsFunction(string name)
+        {
+            this.Name = name;
+            Params = new List<string>();
+            Content = new StringBuilder();
         }
         
         public override string ToString() //将JS函数转换成文本
@@ -94,7 +105,7 @@ namespace UCML.IDE.WebUCML
             }
             sb.AppendLine("){");
             string indentStr = "   ";
-            string[] lines = Util.SplitLine(Content);
+            string[] lines = Util.SplitLine(Content.ToString());
             if (lines != null)
             {
                 foreach (string line in lines) sb.AppendLine(indentStr+line);

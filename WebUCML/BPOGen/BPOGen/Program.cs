@@ -50,18 +50,18 @@ namespace UCML.IDE.WebUCML
             conn.Open();
             int bpoid = 14356;
             BpoPropertySet bps = PrepareBPS(conn, bpoid);
-            //BpoPropertySet bps = new BpoPropertySet();
-            //bps.Name = "BPO_GoodsList";
-            //bps.Capiton = "商品列表";
             UcmlBPO ubpo = new UcmlBPO(bps, "UCMLCommon");
+            ubpo.SavePath = "E:\\tmp\\";
             ubpo.VcTabList = PrepareVcTab(conn, bpoid);
-            ubpo.BuildPageCs();
+            //ubpo.BuildPageCs();
             ubpo.BuildAspxPage();
-            ubpo.BuildAsmxCs();
+            ubpo.SaveAspxPage();
+
+            //ubpo.BuildAsmxCs();
 
             //Console.Write(ubpo.PageCs.ToString());
-            //Console.Write(ubpo.Page.ToString());
-            Console.Write(ubpo.AsmxCs.ToString());
+            Console.Write(ubpo.Page.ToString());
+            //Console.Write(ubpo.AsmxCs.ToString());
             Console.ReadKey();
             
         }
@@ -87,29 +87,103 @@ namespace UCML.IDE.WebUCML
         public static List<UcmlVcTabPage> PrepareVcTab(SqlConnection conn, int bpoid)
         {
             List<UcmlVcTabPage> tabList = new List<UcmlVcTabPage>();
-            UcmlVcTabPage vcTab = new UcmlVcTabPage();
-            UcmlViewCompnent vc = new UcmlViewCompnent();
+            List<UcmlViewCompnent> vcList = new List<UcmlViewCompnent>();
 
-            string sql = "select AppletName,Caption,TargetHTMLSource from AppletDataSet where AppletName='VC_GoodsList'";
-            SqlCommand cmd = new SqlCommand(sql, conn);
+            //构造SQL函数，获取BPO下的所有VC
+            StringBuilder sql = new StringBuilder("select a.AppletOID,a.ParentOID,b.AppletName,b.Caption,b.fTreeGridMode,b.fSubTableTreeMode,b.ImageLink,b.SubBCs,b.SubParentFields,b.SubPicFields,b.SubLabelFields,b.SubFKFields,b.TargetHTMLSource ,b.AllowEdit,a.fHidden,b.UserDesignWebPage,a.alignHeight,a.alignWidth,c.BCName,a.AppletOID ");
+            sql.Append("from BusiViewCompLinkDataSet as a,AppletDataSet as b,BusinessTableDataSet as c ");
+            sql.Append("where a.AppletOID=b.AppletOID and c.BusinessTableOID=b.BusinessTableOID and a.UCMLClassOID=" + bpoid);
+            
+            SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
             SqlDataReader reader = cmd.ExecuteReader();
-            if (reader.Read())
+            //读取VC基本信息
+            while (reader.Read())
             {
-                vc.VCName = Util.GetPropString(reader,0);
-                vc.Caption = Util.GetPropString(reader,1);
-                vc.SetVCNode(Util.GetPropString(reader,2),"div");
+                UcmlViewCompnent vc = new UcmlViewCompnent();
+                vc.LinkOID = Util.GetProperInt(reader, 0);
+                vc.LinkPOID = Util.GetProperInt(reader, 1);
+                vc.VCName = Util.GetPropString(reader,2);
+                vc.Caption = Util.GetPropString(reader,3);
+                vc.fTreeGridMode = Util.GetPropBool(reader, 4);
+                vc.fSubTableTreeMode = Util.GetPropBool(reader, 5);
+                vc.ImageLink = Util.GetPropString(reader, 6);
+                vc.SubBCs = Util.GetPropString(reader, 7);
+                vc.SubParentFields = Util.GetPropString(reader, 8);
+                vc.SubPicFields = Util.GetPropString(reader, 9);
+                vc.SubLabelFields = Util.GetPropString(reader, 10);
+                vc.SubFKFields = Util.GetPropString(reader, 11);
+                vc.SetVCNode(Util.GetPropString(reader,12),"div");
+                vc.EnabledEdit=Util.GetPropBool(reader,13);
+                vc.fHidden = Util.GetPropBool(reader, 14);
+                vc.UserDefineHTML = Util.GetPropBool(reader, 15);
+                vc.alignHeight = Util.GetPropBool(reader, 16);
+                vc.alignWidth = Util.GetPropBool(reader, 17);
+                vc.BCName = Util.GetPropString(reader, 18);
+                vc.OID = Util.GetProperInt(reader, 19);
+
+                vcList.Add(vc);
             }
+            //关闭SqlDataReader
             reader.Close();
-            vcTab.Name = vc.VCName;
-            vcTab.Caption = vc.Caption;
-            vcTab.Add(vc);
-            tabList.Add(vcTab);
+
+            //将有父子层关系的放入一个VCTab里
+            foreach (UcmlViewCompnent vc in vcList)
+            {
+                if (vc.LinkPOID == 0) 
+                {
+                    UcmlVcTabPage vcTab=vcTab = new UcmlVcTabPage();
+                    vcTab.Name=vc.VCName;
+                    vcTab.Caption=vc.Caption;
+                    vcTab.VCList.Add(vc);
+                    int oid = vc.LinkOID;
+                    foreach (UcmlViewCompnent subVc in vcList)
+                    {
+                        if (subVc.LinkPOID == oid) vcTab.VCList.Add(subVc);
+                    }
+                    tabList.Add(vcTab);
+                }
+            }
             return tabList;
         }
 
-        public static List<UcmlViewCompnent> PrepareBC(SqlConnection conn, int bpoid)
+        public static List<UcmlVcColumn> PrepareVcColumn(SqlConnection conn, int vcOid)
         {
-            return null;
+            List<UcmlVcColumn> columns = new List<UcmlVcColumn>();
+            return columns;
+        }
+
+        public static List<UcmlBusiCompPropSet> PrepareBC(SqlConnection conn, int bpoid)
+        {
+            List<UcmlBusiCompPropSet> bcList = new List<UcmlBusiCompPropSet>();
+            //构造sql
+            StringBuilder sql = new StringBuilder("select b.BCName,b.ChineseName,a.RootTable,b.DataMember,a.AllowModifyJION,a.LinkKeyName,a.PK_COLUMN_NAME,c.fCustomKey ");
+            sql.Append(" from BusiCompLinkDataSet as a,BusinessTableDataSet as b ,UCMLClassDataSet as c ");
+            sql.Append("where a.BusinessTableOID=b.BusinessTableOID and b.DataMember=c.ClassName  and a.UCMLClassOID=" + bpoid);
+
+            SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
+            SqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                UcmlBusiCompPropSet bc = new UcmlBusiCompPropSet();
+                bc.Name = Util.GetPropString(reader, 0);
+                bc.Caption = Util.GetPropString(reader, 1);
+                bc.IsRootBC = Util.GetPropBool(reader, 2);
+                bc.TableName = Util.GetPropString(reader, 3);
+                bc.fIDENTITYKey = false;//没找到该键在数据库的定义
+                bc.AllowModifyJION = Util.GetPropBool(reader, 4);
+                bc.LinkKeyName = Util.GetPropString(reader, 5);
+                bc.PK_COLUMN_NAME = Util.GetPropString(reader, 6);
+                bc.fHaveUCMLKey = Util.GetPropBool(reader, 7);
+
+                bcList.Add(bc);
+            }
+            return bcList;
+        }
+
+        public static List<BusiCompColumn> PrepareVcColumn(SqlConnection conn, int vcOid)
+        {
+            List<BusiCompColumn> columns = new List<BusiCompColumn>();
+            return columns;
         }
     }
 }

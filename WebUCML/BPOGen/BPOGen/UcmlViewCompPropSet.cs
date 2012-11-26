@@ -7,8 +7,12 @@ namespace UCML.IDE.WebUCML
 {
     public class UcmlViewCompnent
     {
+        public int LinkOID;
+        public int LinkPOID;
+        public int OID;
         public string VCName;
         public string Caption;
+        public string BCName;
         public HtmlNode VCNode;
         public bool fTreeGridMode;
         public bool fSubTableTreeMode;
@@ -18,6 +22,14 @@ namespace UCML.IDE.WebUCML
         public string SubLabelFields;
         public string SubPicFields;
         public string SubFKFields;
+        public bool EnabledEdit;
+        public bool haveMenu;
+        public bool fHidden;
+        public bool alignHeight;
+        public bool alignWidth;
+        public bool UserDefineHTML;
+
+        public List<UcmlVcColumn> Columns;
 
         public UcmlViewCompnent()
         {
@@ -28,6 +40,7 @@ namespace UCML.IDE.WebUCML
             SubLabelFields = "";
             SubPicFields = "";
             SubFKFields = "";
+            Columns = new List<UcmlVcColumn>();
         }
 
         /// <summary>
@@ -60,7 +73,22 @@ namespace UCML.IDE.WebUCML
             return true;
         }
     }
+    public class UcmlVcColumn
+    {
+        public string FieldName;
+        public string Caption;
+        public bool fDisplay;
+        public bool fCanModify;
+        public int CurrentPos;
+        public int Width;
+        public bool fFixColumn;
+        public string FixColumnValue;
+        public bool fCustomerControl;
+        public string CustomerControlHTC;
+        public string ControlID;
+        public string EditContrl;
 
+    }
     public class UcmlVcTabPage
     {
         public List<UcmlViewCompnent> VCList;

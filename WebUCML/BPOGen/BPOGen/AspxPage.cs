@@ -53,11 +53,24 @@ namespace UCML.IDE.WebUCML
             FormNode.Append(naviBar);
             FormNode.Append(MainPanelNode);
             Body.Append(FormNode);
+            //添加body属性
+            Body["onload"] = "Init()";
+            Body["class"] = "UCML-BODY";
+            Body["leftMargin"] = "0";
+            Body["topMargin"] = "0";
         }
+
         public void AddJsLink(string src)
         { }
         public void AddCssLink(string src)
         { }
+
+        public bool Save(string path)
+        {
+            if (path == null || path == "") return false;
+            if(!path.EndsWith("\\"))path+="\\";
+            return Util.SaveTextFile(this.ToString(), path+this.PageName);
+        }
 
         public override string ToString()
         {

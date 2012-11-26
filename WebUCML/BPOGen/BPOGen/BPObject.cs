@@ -8,6 +8,8 @@ namespace UCML.IDE.WebUCML
     public class UcmlBPO
     {
         private string _Name;
+        public string SavePath;
+
         public AspxPage Page;
         private CSharpDoc _PageCs;
         private CSharpDoc PageDesignerCs;
@@ -15,6 +17,8 @@ namespace UCML.IDE.WebUCML
         private BpoPropertySet BpoPropSet;
         public  List<UcmlVcTabPage> VcTabList;
         private List<UcmlBusiCompPropSet> BCList;
+        public HtcDoc bpoHtc;
+        
         public string Namespace;
         public string Name
         {
@@ -30,12 +34,15 @@ namespace UCML.IDE.WebUCML
         {
             this.Name = bps.Name;
             this.Namespace = ns;
+            SavePath = "";
+
             BpoPropSet = bps;
             Page = new AspxPage(bps.Name + ".aspx",bps.Capiton);
             PageCs = new CSharpDoc(bps.Name+".aspx.cs", Namespace);
             PageDesignerCs = new CSharpDoc(bps.Name + ".designer.cs", Namespace);
             AsmxCs = new CSharpDoc(this.Name, Namespace);
-
+            bpoHtc=new HtcDoc(this.Name+".HTC");
+            
             VcTabList = new List<UcmlVcTabPage>();
             BCList = new List<UcmlBusiCompPropSet>();
         }
@@ -65,6 +72,106 @@ namespace UCML.IDE.WebUCML
 
             Page.Directives.Add(direc4Page);
             Page.Directives.Add(direc4Reg);
+            //添加META标签
+            HtmlNode metaCompatible1 = HtmlNode.CreateClosedNode("meta");
+            metaCompatible1["http-equiv"] = "X-UA-Compatible";
+            metaCompatible1["content"] = "IE=EmulateIE7";
+
+            HtmlNode metaCompatible2 = HtmlNode.CreateClosedNode("meta");
+            metaCompatible2["http-equiv"] = "X-UA-Compatible";
+            metaCompatible2["content"] = "IE=7";
+            this.Page.Head.Append(metaCompatible1);
+            this.Page.Head.Append(metaCompatible2);
+            
+            //添加JS source 标签
+            this.Page.Head.Append(JsContext.GetJsLinkTag("Model/rule/JSRule.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("Model/rule/initvalue.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("js/UCML_PublicApp.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("js/ig_shared.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("js/ig_edit.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("js/dnncore.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("js/dnn.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("js/dnn.dom.positioning.js"));
+            this.Page.Head.Append(JsContext.GetJsLinkTag("js/ucmlapp.js"));
+            //添加js 定义 标签
+            JsContext js4Head = new JsContext();
+            js4Head.Content.AppendLine("var UCMLResourcePath=\"\";");
+            js4Head.Content.AppendLine("var UCMLLocalResourcePath=\"\";");
+            js4Head.Content.AppendLine("var BPOName=\""+this.Name+"\";");
+            JsFunction init = new JsFunction("Init");
+            init.Content.AppendLine("var dobject=window.document.all[\"UCMLBUSIOBJECT\"];");
+            init.Content.AppendLine("if (dobject==undefined) return;");
+            init.Content.AppendLine(this.Name+"BPO.open();");
+
+            string masterTable = "";
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                string bcBase = bc.Name + "Base";
+                if (bc.IsRootBC)
+                {
+                    masterTable = bcBase;
+
+                    init.Content.AppendLine(bcBase+".fIDENTITYKey ="+bc.fIDENTITYKey+";");
+                    init.Content.AppendLine(bcBase + ".AllowModifyJION = "+bc.AllowModifyJION+";");
+                    init.Content.AppendLine(bcBase + ".fHaveUCMLKey = "+bc.fHaveUCMLKey+";");
+                    init.Content.AppendLine(bcBase + ".PrimaryKey = \""+bc.PrimaryKey+"\";");
+                    init.Content.AppendLine(bcBase + ".Columns = "+this.Name+"BPO."+bc.Name+"Columns;");
+                    init.Content.AppendLine(bcBase + ".ChangeOnlyOwnerBy = "+bc.ChangeOnlyOwnerBy+";");
+                    init.Content.AppendLine(bcBase + ".BPOName = \"" + this.Name + "\";");
+                }
+                else
+                {
+                    init.Content.AppendLine(bcBase + ".fIDENTITYKey = "+bc.fIDENTITYKey+";");
+                    init.Content.AppendLine(bcBase + ".AllowModifyJION = "+bc.AllowModifyJION+";");
+                    init.Content.AppendLine(bcBase + ".fHaveUCMLKey = "+bc.fHaveUCMLKey+";");
+                    init.Content.AppendLine(bcBase + ".PrimaryKey = \""+bc.PrimaryKey+"\";");
+                    init.Content.AppendLine(bcBase + ".Columns = " + this.Name + "BPO." + bc.Name + "Columns;");
+                    init.Content.AppendLine(bcBase + ".ChangeOnlyOwnerBy = "+bc.ChangeOnlyOwnerBy+";");
+                    init.Content.AppendLine(bcBase + ".TableType = \"S\";");
+                    init.Content.AppendLine(bcBase + ".LinkKeyName = \""+bc.LinkKeyName+"\";");
+                    init.Content.AppendLine(bcBase + ".PK_COLUMN_NAME = \""+bc.PK_COLUMN_NAME+"\";");
+                    init.Content.AppendLine(bcBase + ".MasterTable = "+masterTable+";");
+                    init.Content.AppendLine(bcBase + ".BPOName = \""+this.Name+"\";");
+                }
+            }
+
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    init.Content.AppendLine(vc.BCName+"Base.AddConnectControls("+vc.VCName+");");
+                    init.Content.AppendLine(vc.VCName+".UserDefineHTML=\""+vc.UserDefineHTML+"\";");
+                    init.Content.AppendLine(vc.VCName+".BPOName=\""+this.Name+"\";");
+                    init.Content.AppendLine(vc.VCName+".AppletName=\""+vc.VCName+"\";");
+                    init.Content.AppendLine(vc.VCName+".EnabledEdit="+vc.EnabledEdit+";");
+                    init.Content.AppendLine(vc.VCName+".haveMenu="+vc.haveMenu+";");
+                    init.Content.AppendLine(vc.VCName+".parentNodeID=\"\";");
+                    init.Content.AppendLine(vc.VCName+".HiddenID=\"TabStrip_"+vc.VCName+";MultiPage_"+vc.VCName+"\";");
+                    init.Content.AppendLine(vc.VCName+".fHidden=\""+vc.fHidden+"\";");
+                    init.Content.AppendLine(vc.VCName+".alignHeight=\""+vc.alignHeight+"\";");
+                    init.Content.AppendLine(vc.VCName+".alignWidth=\""+vc.alignWidth+"\";");
+
+                    init.Content.AppendLine(vc.VCName+".open();");
+                }
+            }
+
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                init.Content.AppendLine(bc.Name + "Base.EnabledEdit=true;");
+                init.Content.AppendLine(bc.Name + "Base.EnabledAppend=true;");
+                init.Content.AppendLine(bc.Name + "Base.EnabledDelete=true;");
+                init.Content.AppendLine(bc.Name + "Base.RecordOwnerType=0;");
+                init.Content.AppendLine(bc.Name + "Base.open();");
+                init.Content.AppendLine(this.Name+"BPO.AddUseTable("+bc.Name+"Base);");
+                init.Content.AppendLine();
+            }
+
+            init.Content.AppendLine(this.Name+"BPO.InitBusinessEnv();");
+            init.Content.AppendLine();
+            //把Init函数加入到JS定义 中
+            js4Head.JsFuncs.Add(init);
+            this.Page.Head.Append(js4Head.GetJsBlockNode());
+
             #region 构建主页面
             //构建主页面
             foreach (UcmlVcTabPage vcTab in this.VcTabList)
@@ -131,13 +238,29 @@ namespace UCML.IDE.WebUCML
                     //添加ContextMenu
                     HtmlNode span = new HtmlNode("span");
                     span["id"] = "theContextMenu"+vc.VCName;
-                    span["style"] = "Z-INDEX: 3103; LEFT: 0px; VISIBILITY: hidden; BEHAVIOR: url(menubar.htc); WIDTH: 200px; POSITION: absolute; TOP: 0px; HEIGHT: 20px";
+                    span["style"] = "Z-INDEX:3103;LEFT:0px;VISIBILITY:hidden;BEHAVIOR: url(menubar.htc);WIDTH:200px;POSITION:absolute;TOP: 0px;HEIGHT:20px";
                     div.Append(span);
                 }
             #endregion 构建主页面
             }
+
+            JsContext tailJS = new JsContext();
+            tailJS.Content.AppendLine("document.write('<DIV style=\"BORDER-RIGHT: #0066ff 1px solid; BORDER-TOP: #0066ff 1px solid; Z-INDEX: 103; LEFT: 201px; VISIBILITY: hidden; BORDER-LEFT: #0066ff 1px solid; WIDTH: 272px; BORDER-BOTTOM: #0066ff 1px solid; POSITION: absolute; TOP: 229px; HEIGHT: 27px; BACKGROUND-COLOR: #ffffcc; TEXT-ALIGN: center\" ms_positioning=\"FlowLayout\" id=\"MsgPanel\"></DIV>');");
+            JsFunction contextMenu = new JsFunction("document.oncontextmenu");
+            contextMenu.Content.AppendLine("event.returnValue = false; ");
+            contextMenu.Content.AppendLine("event.cancelBubble = true; ");
+            contextMenu.Content.AppendLine("return false; ");
+            tailJS.JsFuncs.Add(contextMenu);
+
+            this.Page.Body.Append(tailJS.GetJsBlockNode());
             return true; 
         }
+
+        public bool SaveAspxPage()
+        {
+            return this.Page.Save(this.SavePath);
+        }
+
         public bool BuildPageCs()
         { 
             //添加using 引用
@@ -848,6 +971,967 @@ namespace UCML.IDE.WebUCML
 
 
             AsmxCs.InnerClass.Add(asmxClass);
+            return true;
+        }
+        public bool BuildBpoHtc()
+        {
+            //标准方法定义
+            this.bpoHtc.Definition.AppendLine("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">");
+            this.bpoHtc.Definition.AppendLine("<public:component>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"open\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"LoadResults\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"AddUseTable\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"InitBusinessEnv\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"getRootTable\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"getTaskList\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"getServiceHandle\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"ChangeBusiView\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"condiQuery\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"condiQueryEx\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"condiActorQuery\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"ExportToExcel\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"Report_Compute\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"BusinessSubmit\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"FinishTask\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"StartBCLink\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"CallbuildTreeSubNodes\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"getBCList\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"HideSelect\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:method name=\"ShowSelect\"/>");
+            //标准事件定义
+            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnBeforeOpen\" name=\"onbeforeopen\">");
+            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnAfterOpen\" name=\"onafteropen\">");
+            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnBPObjectReady\" name=\"onbpobjectready\">");
+            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnAfterCondiQuery\" name=\"onaftercondiquery\">");
+            //标准属性定义
+            this.bpoHtc.Definition.AppendLine("<public:property name=\"BusiViewModes\" get=\"getBusiViewModes\"/>");
+            this.bpoHtc.Definition.AppendLine("<public:property name=\"BusinessDataPacket\" get=\"getBusinessDataPacket\"/>");
+            //BPOName 相关定义
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                this.bpoHtc.Definition.AppendLine("<public:property name=\""+bc.Name+"Columns\" get=\"get"+bc.Name+"Columns\"/>");
+            }
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    this.bpoHtc.Definition.AppendLine("<public:method name=\""+vc.VCName+"ExtMenuClick\"/>");
+                    this.bpoHtc.Definition.AppendLine("<public:property name=\"" + vc.VCName + "Columns\" get=\"get" + vc.VCName + "Columns\"/>");
+                }
+            }
+            //变量定义
+            this.bpoHtc.Statement.AppendLine("var __BusiViewModes=null;");
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                this.bpoHtc.Statement.AppendLine("var __" + bc.Name + "Columns;");
+            }
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    this.bpoHtc.Statement.AppendLine("var __" + vc.VCName + "Columns;");
+                }
+            }
+            this.bpoHtc.Statement.AppendLine("var objColumn;");
+            this.bpoHtc.Statement.AppendLine("var TaskList = new Array();");
+            this.bpoHtc.Statement.AppendLine("var iCallID=0;");
+            this.bpoHtc.Statement.AppendLine("var iApplyCallID=-1;");
+            this.bpoHtc.Statement.AppendLine("var theBPOName=\"" + this.Name + "\";");
+            this.bpoHtc.Statement.AppendLine("var BusinessID=0;");
+            this.bpoHtc.Statement.AppendLine("var ServiceHandle=null;");
+            this.bpoHtc.Statement.AppendLine("var UseTableList = new Array();");
+            this.bpoHtc.Statement.AppendLine("var theDataPacket ;");
+            this.bpoHtc.Statement.AppendLine("var iSingleCallID=9;");
+            this.bpoHtc.Statement.AppendLine("var theSingleTable=null;");
+            this.bpoHtc.Statement.AppendLine("var fPromptSubmit=true;");
+            this.bpoHtc.Statement.AppendLine("var theDeltaData=createXMLObject();");
+            this.bpoHtc.Statement.AppendLine("theDeltaData.loadXML(\"<root/>\");");
+            this.bpoHtc.Statement.AppendLine("var COMMAND=\"\";");
+            this.bpoHtc.Statement.AppendLine("var OwnerFlow=\"\";");
+            this.bpoHtc.Statement.AppendLine("var  objChangeBusiView = new ChangeBusiViewObj();");
+            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objChangeBusiView;");
+            this.bpoHtc.Statement.AppendLine("var  objcondiQuery = new condiQueryObj();");
+            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objcondiQuery;");
+            this.bpoHtc.Statement.AppendLine("ObjectgetTotalDataTask = new DoResultgetTotalData();");
+            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = ObjectgetTotalDataTask;");
+
+            this.bpoHtc.Statement.AppendLine("var TotalTextBoxIndex=0;");
+            this.bpoHtc.Statement.AppendLine("var TotalVCName=\"\";");
+
+            this.bpoHtc.Statement.AppendLine("ObjectputTOExcelTask = new DoResultputTOExcel();");
+            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = ObjectputTOExcelTask;");
+
+            this.bpoHtc.Statement.AppendLine("var  objcondiQueryEx = new condiQueryExObj();");
+            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objcondiQueryEx;");
+
+            this.bpoHtc.Statement.AppendLine("var flowTask=false;");
+
+            this.bpoHtc.Statement.AppendLine("var  localxml = createXMLObject();");
+
+            this.bpoHtc.Statement.AppendLine("var theCurrentBCLink=null;");
+            this.bpoHtc.Statement.AppendLine("var BCLinkWin=null;");
+
+            this.bpoHtc.Statement.AppendLine("");
+            this.bpoHtc.Statement.AppendLine("");
+
+            this.bpoHtc.Statement.AppendLine("");
+            //函数定义
+            //BPO相关函数
+
+            //PrepareColumn
+            JsFunction PrepareColumn = new JsFunction("PrepareColumn");
+            PrepareColumn.Content.AppendLine("__BusiViewModes = new Array();");
+
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                JsFunction bcColumn = new JsFunction("get"+bc.Name+"Columns");
+                bcColumn.Content.AppendLine("return __"+bc.Name+"Columns;");
+                bpoHtc.FuncList.Add(bcColumn);
+
+                //OnFieldChange
+                JsFunction OnFieldChange = new JsFunction(bc.Name + "OnFieldChange");
+                bpoHtc.FuncList.Add(OnFieldChange);
+
+                //Prepare BC Column
+                string bcCol = "__" + bc.Name + "Columns";
+                PrepareColumn.Content.AppendLine(bcCol+" = new Array();");
+                PrepareColumn.Content.AppendLine("objColumn = new Object();");
+                int i = 0;
+                foreach (BusiCompColumn column in bc.Columns)
+                {
+                    PrepareColumn.Content.AppendLine("objColumn.FieldName = \""+bc.Columns[i].FieldName+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.Caption = \""+bc.Columns[i].Caption+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.Width = "+bc.Columns[i].Width+";");
+                    PrepareColumn.Content.AppendLine("objColumn.FieldLength = "+bc.Columns[i].FieldLength+";");
+                    PrepareColumn.Content.AppendLine("objColumn.DecLength ="+bc.Columns[i].DecLength+";");
+                    PrepareColumn.Content.AppendLine("objColumn.EditType = \""+bc.Columns[i].EditType+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.FieldType = \""+bc.Columns[i].FieldType+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.CodeTable = \""+bc.Columns[i].CodeTable+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.fUseCodeTable = "+bc.Columns[i].fUseCodeTable+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fAllowNull = "+bc.Columns[i].fAllowNull+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fDisplay = "+bc.Columns[i].fDisplay+";");
+                    PrepareColumn.Content.AppendLine("objColumn.CurrentPos = "+bc.Columns[i].CurrentPos+";");
+                    PrepareColumn.Content.AppendLine("objColumn.DefaultValue = \""+bc.Columns[i].DefaultValue+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.fCanModify = "+bc.Columns[i].fCanModify+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fAllowPick = "+bc.Columns[i].fAllowPick+";");
+                    PrepareColumn.Content.AppendLine("objColumn.RoleTable = \""+bc.Columns[i].RoleTable+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.ForeignKeyField = \""+bc.Columns[i].ForeignKeyField+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.LookupKeyField = \""+bc.Columns[i].LookupKeyField+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.LookupDataSet = \""+bc.Columns[i].LookupDataSet+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.LookupResultField = \""+bc.Columns[i].LookupResultField+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.QueryBPOID = \""+bc.Columns[i].QueryBPOID+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.fForeignKey = "+bc.Columns[i].fForeignKey+";");
+                    PrepareColumn.Content.AppendLine("objColumn.FieldKind = "+bc.Columns[i].FieldKind+";");
+                    PrepareColumn.Content.AppendLine("objColumn.IsMultiValueField = "+bc.Columns[i].IsMultiValueField+";");
+                    PrepareColumn.Content.AppendLine("objColumn.MultiValueTable = \""+bc.Columns[i].MultiValueTable+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.fFunctionInitValue = "+bc.Columns[i].fFunctionInitValue+";");
+                    PrepareColumn.Content.AppendLine("objColumn.InitValueFunc = \""+bc.Columns[i].InitValueFunc+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.ExcelColNo = "+bc.Columns[i].ExcelColNo+";");
+                    PrepareColumn.Content.AppendLine(bcCol+"["+i+"] = objColumn;");
+                    i++;
+                    PrepareColumn.Content.AppendLine("");
+                }
+            }
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    JsFunction vcColumn = new JsFunction("get"+vc.VCName+"Columns");
+                    vcColumn.Content.Append("return __"+vc.VCName+"Columns");
+                    bpoHtc.FuncList.Add(vcColumn);
+
+                    //ExtMenuClick
+                    JsFunction ExtMenuClick = new JsFunction(vc.VCName + "ExtMenuClick");
+                    ExtMenuClick.Params.Add("cmd");
+                    bpoHtc.FuncList.Add(ExtMenuClick);
+
+                    //menuready
+                    JsFunction menuready = new JsFunction(vc.VCName + "menuready");
+                    bpoHtc.FuncList.Add(menuready);
+
+                    //Prepare for VC Column
+                    string vcCol = "__" + vc.VCName + "Columns";
+                    PrepareColumn.Content.AppendLine(vcCol+" = new Array();");
+                    int i = 0;
+                    foreach (UcmlVcColumn column in vc.Columns)
+                    {
+                        PrepareColumn.Content.AppendLine("objColumn = new Object();");
+                        PrepareColumn.Content.AppendLine("objColumn.FieldName = \""+vc.Columns[i].FieldName+"\";");
+                        PrepareColumn.Content.AppendLine("objColumn.Caption = \""+vc.Columns[i].Caption+"\";");
+                        PrepareColumn.Content.AppendLine("objColumn.fDisplay = "+vc.Columns[i].fDisplay+";");
+                        PrepareColumn.Content.AppendLine("objColumn.fCanModify = "+vc.Columns[i].fCanModify+";");
+                        PrepareColumn.Content.AppendLine("objColumn.CurrentPos = "+vc.Columns[i].CurrentPos+";");
+                        PrepareColumn.Content.AppendLine("objColumn.Width = "+vc.Columns[i].Width+";");
+                        PrepareColumn.Content.AppendLine("objColumn.fFixColumn = "+vc.Columns[i].fFixColumn+";");
+                        PrepareColumn.Content.AppendLine("objColumn.FixColumnValue = \""+vc.Columns[i].FixColumnValue+"\";");
+                        PrepareColumn.Content.AppendLine("objColumn.fCustomerControl = "+vc.Columns[i].fCustomerControl+";");
+                        PrepareColumn.Content.AppendLine("objColumn.CustomerControlHTC = \""+vc.Columns[i].CustomerControlHTC+"\";");
+                        PrepareColumn.Content.AppendLine("objColumn.ControlID = \""+vc.Columns[i].ControlID+"\";");
+                        PrepareColumn.Content.AppendLine("objColumn.EditContrl = \""+vc.Columns[i].EditContrl+"\";");
+                        PrepareColumn.Content.AppendLine(vcCol+"["+i+"] = objColumn;");
+                        i++;
+                    }
+                }
+            }
+            //添加PrepareColumn
+            bpoHtc.FuncList.Add(PrepareColumn);
+
+            //BusinessInit
+            JsFunction BusinessInit = new JsFunction("BusinessInit");
+            bpoHtc.FuncList.Add(BusinessInit);
+
+            //BeforeSubmit
+            JsFunction BeforeSubmit = new JsFunction("BeforeSubmit");
+            BeforeSubmit.Content.AppendLine("return true;");
+            bpoHtc.FuncList.Add(BeforeSubmit);
+
+            //AfterSubmit
+            JsFunction AfterSubmit = new JsFunction("AfterSubmit");
+            bpoHtc.FuncList.Add(AfterSubmit);
+
+            //CanSubmit
+            JsFunction CanSubmit = new JsFunction("CanSubmit");
+            CanSubmit.Content.AppendLine("var result=true;");
+            CanSubmit.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            CanSubmit.Content.AppendLine("{");
+            CanSubmit.Content.AppendLine("   result = UseTableList[i].Valiate();");
+            CanSubmit.Content.AppendLine("   if (result==false) break;");
+            CanSubmit.Content.AppendLine("}");
+            CanSubmit.Content.AppendLine("return result");
+            bpoHtc.FuncList.Add(CanSubmit);
+
+            //BusinessSubmit
+            JsFunction BusinessSubmit = new JsFunction("BusinessSubmit");
+            BusinessSubmit.Content.AppendLine("if ( CanSubmit()==false) return;");
+            BusinessSubmit.Content.AppendLine("if ( BeforeSubmit()==false) return;");
+            BusinessSubmit.Content.AppendLine("this.ServiceHandle = eval(ServiceID);");
+            BusinessSubmit.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            BusinessSubmit.Content.AppendLine("{");
+            BusinessSubmit.Content.AppendLine("   UseTableList[i].NotifyControls(\"Post\");");
+            BusinessSubmit.Content.AppendLine("}");
+            BusinessSubmit.Content.AppendLine("if (ServiceHandle!=null)");
+            BusinessSubmit.Content.AppendLine("{");
+            BusinessSubmit.Content.AppendLine("   ShowMessage(\"正在提交信息，请等待......\");");
+            BusinessSubmit.Content.AppendLine("   ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            BusinessSubmit.Content.AppendLine("   var srv=eval(\"ServiceHandle.\"+theBPOName+\"Service\");");
+            BusinessSubmit.Content.AppendLine("   this.iApplyCallID=srv.callService(\"BusinessSubmit\",\"<![CDATA[\" + theDeltaData.documentElement.xml + \"]]>\");");
+            BusinessSubmit.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(BusinessSubmit);
+
+            //getBusiViewModes
+            JsFunction getbusiView = new JsFunction("getBusiViewModes");
+            getbusiView.Content.Append("return __BusiViewModes;");
+            bpoHtc.FuncList.Add(getbusiView);
+
+            //open函数
+            JsFunction open = new JsFunction("name");
+            open.Content.AppendLine("var	pk=createXMLObject();");
+            open.Content.AppendLine("pk.loadXML(UCMLBUSIOBJECT.innerHTML);");
+            open.Content.AppendLine("theDataPacket = pk;");
+            open.Content.AppendLine("var evObj = createEventObject();");
+            open.Content.AppendLine(" OnBeforeOpen.fire(evObj);");
+            open.Content.AppendLine("PrepareColumn();");
+            open.Content.AppendLine("var evObj = createEventObject();");
+            open.Content.Append("OnAfterOpen.fire(evObj);");
+            bpoHtc.FuncList.Add(open);
+            
+            //HideSelect
+            JsFunction hideSelect = new JsFunction("HideSelect");
+            hideSelect.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            hideSelect.Content.AppendLine("{");
+            hideSelect.Content.AppendLine("    UseTableList[i].NotifyControls(\"HideSelect\");");
+            hideSelect.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(hideSelect);
+            
+            //ShowSelect
+            JsFunction showSelect = new JsFunction("ShowSelect");
+            showSelect.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            showSelect.Content.AppendLine("{");
+            showSelect.Content.AppendLine("UseTableList[i].NotifyControls(\"ShowSelect\");");
+            showSelect.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(showSelect);
+
+            //AddUseTable
+            JsFunction addUseTable = new JsFunction("AddUseTable");
+            addUseTable.Params.Add("DataTable");
+            addUseTable.Content.AppendLine("UseTableList[UseTableList.length]=DataTable;");
+            addUseTable.Content.AppendLine("DataTable.DeltaData = theDeltaData;");
+            bpoHtc.FuncList.Add(addUseTable);
+
+            //NotifyTable
+            JsFunction notifyTable = new JsFunction("NotifyTable");
+            notifyTable.Params.Add("xmldoc");
+            notifyTable.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            notifyTable.Content.AppendLine("{");
+            notifyTable.Content.AppendLine("    UseTableList[i].SetDataPacket(xmldoc);");
+            notifyTable.Content.AppendLine("}");
+            notifyTable.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            notifyTable.Content.AppendLine("{");
+            notifyTable.Content.AppendLine("    UseTableList[i].SetControlDataPacket(xmldoc);");
+            notifyTable.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(notifyTable);
+
+            //NotifyTable
+            JsFunction notifyTableNoneActor = new JsFunction("NotifyTableNoneActor");
+            notifyTableNoneActor.Params.Add("xmldoc");
+            notifyTableNoneActor.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            notifyTableNoneActor.Content.AppendLine("{");
+            notifyTableNoneActor.Content.AppendLine("    if (UseTableList[i].TableType!=\"A\")");
+            notifyTableNoneActor.Content.AppendLine("        UseTableList[i].SetDataPacketAndChild(xmldoc);");
+            notifyTableNoneActor.Content.AppendLine("}");
+            notifyTableNoneActor.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            notifyTableNoneActor.Content.AppendLine("{");
+            notifyTableNoneActor.Content.AppendLine("    if (UseTableList[i].TableType!=\"A\")");
+            notifyTableNoneActor.Content.AppendLine("        UseTableList[i].SetControlDataPacket(xmldoc);");
+            notifyTableNoneActor.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(notifyTableNoneActor);
+
+            //getRootTable
+            JsFunction getRootTable = new JsFunction("getRootTable");
+            getRootTable.Content.AppendLine("return UseTableList[0];");
+            bpoHtc.FuncList.Add(getRootTable);
+
+            //
+            JsFunction InitBusinessEnv = new JsFunction("InitBusinessEnv");
+            InitBusinessEnv.Content.AppendLine("COMMAND=getURLParameters(\"COMMAND\");");
+            InitBusinessEnv.Content.AppendLine("var Enabled=getURLParameters(\"ENABLED\");");
+            InitBusinessEnv.Content.AppendLine("if (Enabled==\"false\")");
+            InitBusinessEnv.Content.AppendLine("{");
+            InitBusinessEnv.Content.AppendLine("    for ( var i=0;i<UseTableList.length;i++)");
+            InitBusinessEnv.Content.AppendLine("    {");
+            InitBusinessEnv.Content.AppendLine("        UseTableList[i].EnableApplets(false);");
+            InitBusinessEnv.Content.AppendLine("    }");
+            InitBusinessEnv.Content.AppendLine("}");
+            InitBusinessEnv.Content.AppendLine("OwnerFlow=\"\";");
+            InitBusinessEnv.Content.AppendLine("ServiceHandle = eval(ServiceID);");
+            InitBusinessEnv.Content.AppendLine("if(ServiceHandle!=null)");
+            InitBusinessEnv.Content.AppendLine("{");
+            InitBusinessEnv.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            InitBusinessEnv.Content.AppendLine("}");
+            InitBusinessEnv.Content.AppendLine("NotifyTable(theDataPacket);");
+            InitBusinessEnv.Content.AppendLine("BusinessInit();");
+            InitBusinessEnv.Content.AppendLine("var evObj = createEventObject();");
+            InitBusinessEnv.Content.AppendLine("OnBPObjectReady.fire(evObj);");
+            InitBusinessEnv.Content.AppendLine("return;");
+            bpoHtc.FuncList.Add(InitBusinessEnv);
+
+            //getServiceHandle
+            JsFunction getServiceHandle = new JsFunction("getServiceHandle");
+            getServiceHandle.Content.AppendLine("ServiceHandle = eval(ServiceID);");
+            getServiceHandle.Content.AppendLine("return ServiceHandle;");
+            bpoHtc.FuncList.Add(getServiceHandle);
+
+            //ChangeBusiViewObj
+            JsFunction ChangeBusiViewObj = new JsFunction("ChangeBusiViewObj");
+            ChangeBusiViewObj.Content.AppendLine("var CallID;");
+            ChangeBusiViewObj.Content.AppendLine("this.DoResult = function(result)");
+            ChangeBusiViewObj.Content.AppendLine("{");
+            ChangeBusiViewObj.Content.AppendLine("    HideMessage();");
+            ChangeBusiViewObj.Content.AppendLine("    if(result.error==true)");
+            ChangeBusiViewObj.Content.AppendLine("    {");
+            ChangeBusiViewObj.Content.AppendLine("        var xfaultstring = result.errorDetail.string;");
+            ChangeBusiViewObj.Content.AppendLine("        alert(xfaultstring);");
+            ChangeBusiViewObj.Content.AppendLine("        return;");
+            ChangeBusiViewObj.Content.AppendLine("    }");
+            ChangeBusiViewObj.Content.AppendLine("    var pk = result.raw;");
+            ChangeBusiViewObj.Content.AppendLine("    if (theDataPacket==null)");
+            ChangeBusiViewObj.Content.AppendLine("    {");
+            ChangeBusiViewObj.Content.AppendLine("        theDataPacket = pk;");
+            ChangeBusiViewObj.Content.AppendLine("        NotifyTable(pk);");
+            ChangeBusiViewObj.Content.AppendLine("        BusinessInit();");
+            ChangeBusiViewObj.Content.AppendLine("    }");
+            ChangeBusiViewObj.Content.AppendLine("    else");
+            ChangeBusiViewObj.Content.AppendLine("    {");
+            ChangeBusiViewObj.Content.AppendLine("        NotifyTable(pk);");
+            ChangeBusiViewObj.Content.AppendLine("    }");
+            ChangeBusiViewObj.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(ChangeBusiViewObj);
+
+            //ChangeBusiView
+            JsFunction ChangeBusiView = new JsFunction("ChangeBusiView");
+            ChangeBusiView.Params.Add("viewType");
+            ChangeBusiView.Content.AppendLine("this.ServiceHandle = eval(ServiceID);");
+            ChangeBusiView.Content.AppendLine("if (ServiceHandle!=null)");
+            ChangeBusiView.Content.AppendLine("{");
+            ChangeBusiView.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            ChangeBusiView.Content.AppendLine("    eval(\"objChangeBusiView.CallID =ServiceHandle.\"+theBPOName+\"Service.callService(\"ChangeBusiView\",viewType)\");");
+            ChangeBusiView.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(ChangeBusiView);
+
+            //condiQueryObj
+            JsFunction condiQueryObj = new JsFunction("condiQueryObj");
+            condiQueryObj.Content.AppendLine("var CallID;");
+            condiQueryObj.Content.AppendLine("this.DoResult = function(result)");
+            condiQueryObj.Content.AppendLine("{");
+            condiQueryObj.Content.AppendLine("    HideMessage();");
+            condiQueryObj.Content.AppendLine("    if(result.error==true)");
+            condiQueryObj.Content.AppendLine("    {");
+            condiQueryObj.Content.AppendLine("        var xfaultstring = result.errorDetail.string;");
+            condiQueryObj.Content.AppendLine("        alert(xfaultstring);");
+            condiQueryObj.Content.AppendLine("        return;");
+            condiQueryObj.Content.AppendLine("    }");
+            condiQueryObj.Content.AppendLine("    var pk = result.raw;");
+            condiQueryObj.Content.AppendLine("    if (theDataPacket==null)");
+            condiQueryObj.Content.AppendLine("    {");
+            condiQueryObj.Content.AppendLine("        NotifyTableNoneActor(pk);;");
+            condiQueryObj.Content.AppendLine("        BusinessInit();");
+            condiQueryObj.Content.AppendLine("    }");
+            condiQueryObj.Content.AppendLine("    else");
+            condiQueryObj.Content.AppendLine("    {");
+            condiQueryObj.Content.AppendLine("        NotifyTableNoneActor(pk);");
+            condiQueryObj.Content.AppendLine("    }");
+            condiQueryObj.Content.AppendLine("    var evObj = createEventObject();");
+            condiQueryObj.Content.AppendLine("    OnAfterCondiQuery.fire(evObj);");
+            condiQueryObj.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(condiQueryObj);
+
+            //getTotalData
+            JsFunction getTotalData = new JsFunction("getTotalData");
+            getTotalData.Params.Add("BCName");
+            getTotalData.Params.Add("fieldList");
+            getTotalData.Params.Add("valueList");
+            getTotalData.Params.Add("condiIndentList");
+            getTotalData.Params.Add("SQLCondi");
+            getTotalData.Params.Add("SQLCondiType");
+            getTotalData.Params.Add("SQLFix");
+            getTotalData.Params.Add("TotalFields");
+            getTotalData.Params.Add("TotalModes");
+            getTotalData.Content.AppendLine("var BCBase = eval(BCName+\"Base\");");
+            getTotalData.Content.AppendLine("fieldList = BCBase.fieldList; valueList = BCBase.valueList; condiIndentList = BCBase.condiIndentList; SQLCondi=BCBase.SQLCondi;");
+            getTotalData.Content.AppendLine("this.ServiceHandle=eval(ServiceID);");
+            getTotalData.Content.AppendLine("if(ServiceHandle!=null)");
+            getTotalData.Content.AppendLine("{");
+            getTotalData.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            getTotalData.Content.AppendLine("    var srv=eval(\"ServiceHandle.\"+theBPOName+\"Service\");");
+            getTotalData.Content.AppendLine("    ObjectgetTotalDataTask.CallID=srv.callService(\"getTotalData\",BCName,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,SQLFix,TotalFields,TotalModes);");
+            getTotalData.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(getTotalData);
+
+            //DoResultgetTotalData
+            JsFunction DoResultgetTotalData = new JsFunction("DoResultgetTotalData");
+            DoResultgetTotalData.Content.AppendLine("this.DoResult = function(result)");
+            DoResultgetTotalData.Content.AppendLine("{");
+            DoResultgetTotalData.Content.AppendLine("    if(result.error==false)");
+            DoResultgetTotalData.Content.AppendLine("    {");
+            DoResultgetTotalData.Content.AppendLine("        var values=event.result.value;");
+            DoResultgetTotalData.Content.AppendLine("        var obj = eval(\"ToolBar\"+TotalVCName+\".getItem(TotalTextBoxIndex)\");");
+            DoResultgetTotalData.Content.AppendLine("        obj.setAttribute(\"Value\",values);");
+            DoResultgetTotalData.Content.AppendLine("    }");
+            DoResultgetTotalData.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(DoResultgetTotalData);
+
+            //ExportToExcel
+            JsFunction ExportToExcel = new JsFunction("ExportToExcel");
+            ExportToExcel.Content.AppendLine("ShowMessage(\"正在执行导出，请等待......\");");
+            ExportToExcel.Content.AppendLine("var nFieldLists=\"\";");
+            ExportToExcel.Content.AppendLine("if (MergerFieldIndex==undefined)  MergerFieldIndex=\"\";");
+            ExportToExcel.Content.AppendLine("if (TitleTextLists==undefined)  TitleTextLists=\"\";");
+            ExportToExcel.Content.AppendLine("for (var i=0; i<VCObject.AppletColumn.length; i++)");
+            ExportToExcel.Content.AppendLine("{");
+            ExportToExcel.Content.AppendLine("    if (nFieldLists!=\"\") nFieldLists+=\";\";");
+            ExportToExcel.Content.AppendLine("    nFieldLists += VCObject.AppletColumn[i].FieldName;");
+            ExportToExcel.Content.AppendLine("}");
+            ExportToExcel.Content.AppendLine("var BCBase = eval(BCName+\"Base\");");
+            ExportToExcel.Content.AppendLine("var fieldList = BCBase.fieldList; var valueList = BCBase.valueList; var condiIndentList = BCBase.condiIndentList;");
+            ExportToExcel.Content.AppendLine("if (SQLCondi==undefined||SQLCondi==\"\") SQLCondi=BCBase.SQLCondi;");
+            ExportToExcel.Content.AppendLine("var SQLCondiType=0;");
+            ExportToExcel.Content.AppendLine("this.ServiceHandle = eval(ServiceID);");
+            ExportToExcel.Content.AppendLine("condiIndentList=\"<![CDATA[\" + condiIndentList + \"]]>\";");
+            ExportToExcel.Content.AppendLine("valueList=\"<![CDATA[\" + valueList + \"]]>\";");
+            ExportToExcel.Content.AppendLine("if(ServiceHandle!=null)");
+            ExportToExcel.Content.AppendLine("{");
+            ExportToExcel.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            ExportToExcel.Content.AppendLine("    var srv=eval(\"ServiceHandle.\"+theBPOName+\"Service\");");
+            ExportToExcel.Content.AppendLine("    ObjectputTOExcelTask.CallID=srv.callService(\"PutToExcelEX\",BCName,nFieldLists,0,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,\"\",UCMLLocalResourcePath,VCObject.id,MergerFieldIndex, TitleTextLists);");
+            ExportToExcel.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(ExportToExcel);
+
+            //DoResultputTOExcel
+            JsFunction DoResultputTOExcel = new JsFunction("DoResultputTOExcel");
+            DoResultputTOExcel.Content.AppendLine("this.DoResult = function(result)");
+            DoResultputTOExcel.Content.AppendLine("{");
+            DoResultputTOExcel.Content.AppendLine("    if(result.error==false)");
+            DoResultputTOExcel.Content.AppendLine("    {");
+            DoResultputTOExcel.Content.AppendLine("        var xmldoc=event.result.raw;");
+            DoResultputTOExcel.Content.AppendLine("        var FiledName = event.result.value;");
+            DoResultputTOExcel.Content.AppendLine("        if( FiledName.length>0)");
+            DoResultputTOExcel.Content.AppendLine("        {");
+            DoResultputTOExcel.Content.AppendLine("            window.open(FiledName) ;");
+            DoResultputTOExcel.Content.AppendLine("        }");
+            DoResultputTOExcel.Content.AppendLine("        else");
+            DoResultputTOExcel.Content.AppendLine("        {");
+            DoResultputTOExcel.Content.AppendLine("            alert(\"导出失败\");");
+            DoResultputTOExcel.Content.AppendLine("        }");
+            DoResultputTOExcel.Content.AppendLine("");
+            DoResultputTOExcel.Content.AppendLine("");
+            bpoHtc.FuncList.Add(DoResultputTOExcel);
+
+            //condiQuery
+            JsFunction condiQuery = new JsFunction("condiQuery");
+            condiQuery.Params.Add("fieldList");
+            condiQuery.Params.Add("valueList");
+            condiQuery.Params.Add("condiIndentList");
+            condiQuery.Params.Add("SQLCondi");
+            condiQuery.Params.Add("SQLCondiType");
+            condiQuery.Params.Add("nPageCount");
+            condiQuery.Content.AppendLine("ShowMessage(\"正在执行查询，请等待......\");");
+            condiQuery.Content.AppendLine("var rootTable = getRootTable();");
+            condiQuery.Content.AppendLine("rootTable.SetCondiList(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType);");
+            condiQuery.Content.AppendLine("this.ServiceHandle = eval(ServiceID);");
+            condiQuery.Content.AppendLine("if (SQLCondi==undefined)");
+            condiQuery.Content.AppendLine("{");
+            condiQuery.Content.AppendLine("    SQLCondi=\"\";");
+            condiQuery.Content.AppendLine("    SQLCondiType=0;");
+            condiQuery.Content.AppendLine("}");
+            condiQuery.Content.AppendLine("if (nPageCount==undefined)");
+            condiQuery.Content.AppendLine("{");
+            condiQuery.Content.AppendLine("    nPageCount=-1;");
+            condiQuery.Content.AppendLine("}");
+            condiQuery.Content.AppendLine("condiIndentList=\"<![CDATA[\" + condiIndentList + \"]]>\";");
+            condiQuery.Content.AppendLine("valueList=\"<![CDATA[\" + valueList + \"]]>\";");
+            condiQuery.Content.AppendLine("if (ServiceHandle!=null)");
+            condiQuery.Content.AppendLine("{");
+            condiQuery.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            condiQuery.Content.AppendLine("    eval(\"objcondiQuery.CallID =ServiceHandle.\"+theBPOName+\"Service.callService('getCondiBusinessData',0,nPageCount,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType)\");");
+            condiQuery.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(condiQuery);
+
+            //condiQueryExObj
+            JsFunction condiQueryExObj = new JsFunction("condiQueryExObj");
+            condiQueryExObj.Content.AppendLine("var CallID;");
+            condiQueryExObj.Content.AppendLine("this.DoResult = function(result)");
+            condiQueryExObj.Content.AppendLine("{");
+            condiQueryExObj.Content.AppendLine("    HideMessage();");
+            condiQueryExObj.Content.AppendLine("    if(result.error==true)");
+            condiQueryExObj.Content.AppendLine("    {");
+            condiQueryExObj.Content.AppendLine("       var xfaultstring = result.errorDetail.string;");
+            condiQueryExObj.Content.AppendLine("       alert(xfaultstring);");
+            condiQueryExObj.Content.AppendLine("       return;");
+            condiQueryExObj.Content.AppendLine("    }");
+            condiQueryExObj.Content.AppendLine("    var pk = result.raw;");
+            condiQueryExObj.Content.AppendLine("    if (theDataPacket==null)");
+            condiQueryExObj.Content.AppendLine("    {");
+            condiQueryExObj.Content.AppendLine("       NotifyTable(pk);");
+            condiQueryExObj.Content.AppendLine("       BusinessInit();");
+            condiQueryExObj.Content.AppendLine("    }");
+            condiQueryExObj.Content.AppendLine("    else");
+            condiQueryExObj.Content.AppendLine("    {");
+            condiQueryExObj.Content.AppendLine("       NotifyTable(pk);");
+            condiQueryExObj.Content.AppendLine("    }");
+            condiQueryExObj.Content.AppendLine("    var evObj = createEventObject();");
+            condiQueryExObj.Content.AppendLine("    OnAftercondiQuery.fire(evObj);");
+            condiQueryExObj.Content.AppendLine("}");
+            condiQueryExObj.Content.AppendLine("");
+            condiQueryExObj.Content.AppendLine("");
+            bpoHtc.FuncList.Add(condiQueryExObj);
+
+            //condiQueryEx
+            JsFunction condiQueryEx = new JsFunction("condiQueryEx");
+            condiQueryEx.Params.Add("fieldList");
+            condiQueryEx.Params.Add("valueList");
+            condiQueryEx.Params.Add("condiIndentList");
+            condiQueryEx.Params.Add("SQLCondi");
+            condiQueryEx.Params.Add("SQLCondiType");
+            condiQueryEx.Content.AppendLine("ShowMessage(\"正在执行查询，请等待......\");");
+            condiQueryEx.Content.AppendLine("var rootTable = getRootTable();");
+            condiQueryEx.Content.AppendLine("rootTable.SetCondiList(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType);");
+            condiQueryEx.Content.AppendLine("this.ServiceHandle = eval(ServiceID);");
+            condiQueryEx.Content.AppendLine("if (SQLCondi==undefined)");
+            condiQueryEx.Content.AppendLine("{");
+            condiQueryEx.Content.AppendLine("    SQLCondi=\"\";");
+            condiQueryEx.Content.AppendLine("    SQLCondiType=0;");
+            condiQueryEx.Content.AppendLine("}");
+            condiQueryEx.Content.AppendLine("condiIndentList=\"<![CDATA[\" + condiIndentList + \"]]>\";");
+            condiQueryEx.Content.AppendLine("valueList=\"<![CDATA[\" + valueList + \"]]>\";");
+            condiQueryEx.Content.AppendLine("if (ServiceHandle!=null)");
+            condiQueryEx.Content.AppendLine("{");
+            condiQueryEx.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            condiQueryEx.Content.AppendLine("    eval(\"objcondiQueryEx.CallID =ServiceHandle.\"+theBPOName+\"Service.callService('getCondiBusinessDataEx',0,10,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,'',SubBC_SQLCondi)\");");
+            condiQueryEx.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(condiQueryEx);
+
+            //condiActorQuery
+            JsFunction condiActorQuery = new JsFunction("condiActorQuery");
+            condiActorQuery.Params.Add("TableName");
+            condiActorQuery.Params.Add("fieldList");
+            condiActorQuery.Params.Add("valueList");
+            condiActorQuery.Params.Add("condiIndentList");
+            condiActorQuery.Params.Add("SQLCondi");
+            condiActorQuery.Params.Add("SQLCondiType");
+            condiActorQuery.Content.AppendLine("ShowMessage(\"正在执行查询，请等待......\");");
+            condiActorQuery.Content.AppendLine("theSingleTable=TableName;");
+            condiActorQuery.Content.AppendLine("this.ServiceHandle = eval(ServiceID);");
+            condiActorQuery.Content.AppendLine("if (SQLCondi==undefined)");
+            condiActorQuery.Content.AppendLine("{");
+            condiActorQuery.Content.AppendLine("   SQLCondi=\"\";");
+            condiActorQuery.Content.AppendLine("   SQLCondiType=0;");
+            condiActorQuery.Content.AppendLine("}");
+            condiActorQuery.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            condiActorQuery.Content.AppendLine("{");
+            condiActorQuery.Content.AppendLine("   if (UseTableList[i].TableName==TableName)");
+            condiActorQuery.Content.AppendLine("   {");
+            condiActorQuery.Content.AppendLine("      UseTableList[i].SetCondiList(fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType);");
+            condiActorQuery.Content.AppendLine("      break;");
+            condiActorQuery.Content.AppendLine("   }");
+            condiActorQuery.Content.AppendLine("}");
+            condiActorQuery.Content.AppendLine("condiIndentList=\"<![CDATA[\" + condiIndentList + \"]]>\";");
+            condiActorQuery.Content.AppendLine("valueList=\"<![CDATA[\" + valueList + \"]]>\";");
+            condiActorQuery.Content.AppendLine("if (ServiceHandle!=null)");
+            condiActorQuery.Content.AppendLine("{");
+            condiActorQuery.Content.AppendLine("   ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            condiActorQuery.Content.AppendLine("   eval(\"this.iSingleCallID =ServiceHandle.\"+theBPOName+\"Service.callService('getCondiActorData',TableName,0,10,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType)\");");
+            condiActorQuery.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(condiActorQuery);
+
+            //Report_Compute
+            JsFunction Report_Compute = new JsFunction("Report_Compute");
+            bpoHtc.FuncList.Add(Report_Compute);
+
+            //getBCList
+            JsFunction getBCList = new JsFunction("getBCList");
+            getBCList.Content.AppendLine("return UseTableList;");
+            bpoHtc.FuncList.Add(getBCList);
+
+            //FinishTask
+            JsFunction FinishTask = new JsFunction("FinishTask");
+            FinishTask.Content.AppendLine("this.ServiceHandle = eval(ServiceID);");
+            FinishTask.Content.AppendLine("if (ServiceHandle!=null)");
+            FinishTask.Content.AppendLine("{");
+            FinishTask.Content.AppendLine("   ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
+            FinishTask.Content.AppendLine("   eval(\"this.iApplyCallID =ServiceHandle.\"+theBPOName+\"Service.callService(\"FinishTask\",(TaskID))\");");
+            FinishTask.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(FinishTask);
+
+            //LoadResults
+            JsFunction LoadResults = new JsFunction("LoadResults");
+            LoadResults.Params.Add("result");
+            LoadResults.Content.AppendLine("HideMessage();");
+            LoadResults.Content.AppendLine("if(event.result.error==true)");
+            LoadResults.Content.AppendLine("{");
+            LoadResults.Content.AppendLine("   var xfaultstring = event.result.errorDetail.string;");
+            LoadResults.Content.AppendLine("   alert(xfaultstring);");
+            LoadResults.Content.AppendLine("   return;");
+            LoadResults.Content.AppendLine("}");
+            LoadResults.Content.AppendLine("if(iSingleCallID == event.result.id)");
+            LoadResults.Content.AppendLine("{");
+            LoadResults.Content.AppendLine("   var pk = event.result.raw;");
+            LoadResults.Content.AppendLine("   for ( var i=0;i<UseTableList.length;i++)");
+            LoadResults.Content.AppendLine("   {");
+            LoadResults.Content.AppendLine("      if (theSingleTable==UseTableList[i].TableName)");
+            LoadResults.Content.AppendLine("      {");
+            LoadResults.Content.AppendLine("         UseTableList[i].SetDataPacketAndChild(pk);");
+            LoadResults.Content.AppendLine("         break;");
+            LoadResults.Content.AppendLine("      }");
+            LoadResults.Content.AppendLine("   }");
+            LoadResults.Content.AppendLine("}");
+            LoadResults.Content.AppendLine("if(iApplyCallID == event.result.id)");
+            LoadResults.Content.AppendLine("{");
+            LoadResults.Content.AppendLine("   for ( var i=0;i<UseTableList.length;i++)");
+            LoadResults.Content.AppendLine("   {");
+            LoadResults.Content.AppendLine("      if (UseTableList[i].fIDENTITYKey == true)");
+            LoadResults.Content.AppendLine("      {");
+            LoadResults.Content.AppendLine("         fPromptSubmit=false;");
+            LoadResults.Content.AppendLine("         var rows=event.result.value.split(\"@\");");
+            LoadResults.Content.AppendLine("         for(var m=0; m<rows.length; m++)");
+            LoadResults.Content.AppendLine("         {");
+            LoadResults.Content.AppendLine("            var fields=rows[m].split(\";\");");
+            LoadResults.Content.AppendLine("            if (fields.length==1) break;");
+            LoadResults.Content.AppendLine("            var bco=eval(fields[0]+\"Base\");");
+            LoadResults.Content.AppendLine("            if (bco.LocateOID_GUID(fields[1])!=null)");
+            LoadResults.Content.AppendLine("               bco.setFieldValueEx(bco.PrimaryKey,fields[2]);");
+            LoadResults.Content.AppendLine("         }");
+            LoadResults.Content.AppendLine("         break;");
+            LoadResults.Content.AppendLine("      }");
+            LoadResults.Content.AppendLine("   }");
+            LoadResults.Content.AppendLine("   MergeChange();");
+            LoadResults.Content.AppendLine("   if (fPromptSubmit==true)alert(event.result.value);");
+            LoadResults.Content.AppendLine("   if (flowTask==true)");
+            LoadResults.Content.AppendLine("   {");
+            LoadResults.Content.AppendLine("      var hasRiskPoint = getURLParameters(\"hasRiskPoint\");");
+            LoadResults.Content.AppendLine("      var openBPOName=getURLParameters(\"BPOName\")+\"BPO\";");
+            LoadResults.Content.AppendLine("      try");
+            LoadResults.Content.AppendLine("      {");
+            LoadResults.Content.AppendLine("         var objTable;");
+            LoadResults.Content.AppendLine("         if (hasRiskPoint && hasRiskPoint == 1) {");
+            LoadResults.Content.AppendLine("            objTable = eval(\"window.parent.opener.opener.\"+openBPOName+\".getRootTable()\");");
+            LoadResults.Content.AppendLine("            objTable.Refresh();");
+            LoadResults.Content.AppendLine("            window.parent.opener.close();");
+            LoadResults.Content.AppendLine("         }");
+            LoadResults.Content.AppendLine("         else{");
+            LoadResults.Content.AppendLine("            objTable = eval(\"window.parent.opener.\"+openBPOName+\".getRootTable()\");");
+            LoadResults.Content.AppendLine("            objTable.Refresh();");
+            LoadResults.Content.AppendLine("         }");
+            LoadResults.Content.AppendLine("      }");
+            LoadResults.Content.AppendLine("      catch(e){}");
+            LoadResults.Content.AppendLine("      window.parent.close();");
+            LoadResults.Content.AppendLine("   }");
+            LoadResults.Content.AppendLine("   flowTask=false;");
+            LoadResults.Content.AppendLine("   AfterSubmit();");
+            LoadResults.Content.AppendLine("   return;");
+            LoadResults.Content.AppendLine("}");
+            LoadResults.Content.AppendLine("for ( var i=0;i<TaskList.length;i++)");
+            LoadResults.Content.AppendLine("{");
+            LoadResults.Content.AppendLine("   var obj = TaskList[i];");
+            LoadResults.Content.AppendLine("   if(obj.CallID == event.result.id)");
+            LoadResults.Content.AppendLine("   {");
+            LoadResults.Content.AppendLine("      obj.DoResult(event.result);");
+            LoadResults.Content.AppendLine("      return;");
+            LoadResults.Content.AppendLine("   }");
+            LoadResults.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(LoadResults);
+
+            //getBusinessDataPacket
+            JsFunction getBusinessDataPacket = new JsFunction("getBusinessDataPacket");
+            getBusinessDataPacket.Content.AppendLine("return theDataPacket;");
+            bpoHtc.FuncList.Add(getBusinessDataPacket);
+
+            //MergeChange
+            JsFunction MergeChange = new JsFunction("MergeChange");
+            MergeChange.Content.AppendLine("while(true)");
+            MergeChange.Content.AppendLine("{");
+            MergeChange.Content.AppendLine("   if (theDeltaData.documentElement.childNodes.length<=0) break;");
+            MergeChange.Content.AppendLine("   var node = theDeltaData.documentElement.childNodes[0];");
+            MergeChange.Content.AppendLine("   theDeltaData.documentElement.removeChild(node);");
+            MergeChange.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(MergeChange);
+
+            //DeltaUpdate
+            JsFunction DeltaUpdate = new JsFunction("DeltaUpdate");
+            DeltaUpdate.Params.Add("recordNode");
+            DeltaUpdate.Params.Add("FieldName");
+            DeltaUpdate.Params.Add("value");
+            DeltaUpdate.Params.Add("DataName");
+            DeltaUpdate.Content.AppendLine("if (value==null) return;");
+            DeltaUpdate.Content.AppendLine("var srcNode=null;");
+            DeltaUpdate.Content.AppendLine("var changeNode=null;");
+            DeltaUpdate.Content.AppendLine("var reocordTagName=DataName;");
+            DeltaUpdate.Content.AppendLine("var seleNodes = theDeltaData.documentElement.selectNodes(\"//\"+reocordTagName);");
+            DeltaUpdate.Content.AppendLine("for (var i=0;i<seleNodes.length;i++)");
+            DeltaUpdate.Content.AppendLine("{");
+            DeltaUpdate.Content.AppendLine("   var node = seleNodes[i];");
+            DeltaUpdate.Content.AppendLine("   if (node.getAttribute(\"UpdateKind\")!=null)");
+            DeltaUpdate.Content.AppendLine("   {");
+            DeltaUpdate.Content.AppendLine("      srcNode = node;");
+            DeltaUpdate.Content.AppendLine("      changeNode = seleNodes[i+1];");
+            DeltaUpdate.Content.AppendLine("      break;");
+            DeltaUpdate.Content.AppendLine("   }");
+            DeltaUpdate.Content.AppendLine("}");
+            DeltaUpdate.Content.AppendLine("if ( srcNode==null )");
+            DeltaUpdate.Content.AppendLine("{");
+            DeltaUpdate.Content.AppendLine("   var rNode = theDeltaData.createNode(1,reocordTagName,\"\");");
+            DeltaUpdate.Content.AppendLine("   changeNode = theDeltaData.createNode(1,reocordTagName,\"\");");
+            DeltaUpdate.Content.AppendLine("   rNode.setAttribute(\"UpdateKind\", \"ukModify\");");
+            DeltaUpdate.Content.AppendLine("   for ( var i=0;i<recordNode.childNodes.length;i++)");
+            DeltaUpdate.Content.AppendLine("   {");
+            DeltaUpdate.Content.AppendLine("      var fnode=theDeltaData.createNode(1,recordNode.childNodes[i].nodeName,\"\");");
+            DeltaUpdate.Content.AppendLine("      fnode.text=recordNode.childNodes[i].text;");
+            DeltaUpdate.Content.AppendLine("      rNode.appendChild(fnode);");
+            DeltaUpdate.Content.AppendLine("   }");
+            DeltaUpdate.Content.AppendLine("   for ( var i=0;i<recordNode.childNodes.length;i++)");
+            DeltaUpdate.Content.AppendLine("   {");
+            DeltaUpdate.Content.AppendLine("      var fnode=theDeltaData.createNode(1,recordNode.childNodes[i].nodeName,\"\");");
+            DeltaUpdate.Content.AppendLine("      if (fnode.nodeName==FieldName){");
+            DeltaUpdate.Content.AppendLine("         fnode.text=value;");
+            DeltaUpdate.Content.AppendLine("      }");
+            DeltaUpdate.Content.AppendLine("      else{");
+            DeltaUpdate.Content.AppendLine("         fnode.text=\"null\";");
+            DeltaUpdate.Content.AppendLine("      }");
+            DeltaUpdate.Content.AppendLine("      changeNode.appendChild(fnode);");
+            DeltaUpdate.Content.AppendLine("   }");
+            DeltaUpdate.Content.AppendLine("   theDeltaData.documentElement.appendChild(rNode);");
+            DeltaUpdate.Content.AppendLine("   theDeltaData.documentElement.appendChild(changeNode);");
+            DeltaUpdate.Content.AppendLine("}");
+            DeltaUpdate.Content.AppendLine("else{");
+            DeltaUpdate.Content.AppendLine("   for ( var i=0;i<changeNode.childNodes.length;i++)");
+            DeltaUpdate.Content.AppendLine("   {");
+            DeltaUpdate.Content.AppendLine("      var fnode=changeNode.childNodes[i];");
+            DeltaUpdate.Content.AppendLine("      if (fnode.nodeName==FieldName){");
+            DeltaUpdate.Content.AppendLine("         fnode.text=value;");
+            DeltaUpdate.Content.AppendLine("      }");
+            DeltaUpdate.Content.AppendLine("   }");
+            DeltaUpdate.Content.AppendLine("}");
+
+            bpoHtc.FuncList.Add(DeltaUpdate);
+
+            //getResourceData
+            JsFunction getResourceData = new JsFunction("getResourceData");
+            getResourceData.Params.Add("keyName");
+            getResourceData.Content.AppendLine("var Node = theDataPacket.selectSingleNode(\"//ResourceData[KeyName='\"+keyName+\"']\");");
+            getResourceData.Content.AppendLine("if (Node!=null) return Node.childNodes[1].text;");
+            getResourceData.Content.AppendLine("else return \"\";");
+            bpoHtc.FuncList.Add(getResourceData);
+
+            //CallbuildTreeSubNodes
+            JsFunction CallbuildTreeSubNodes = new JsFunction("CallbuildTreeSubNodes");
+            CallbuildTreeSubNodes.Params.Add("BCName");
+            CallbuildTreeSubNodes.Params.Add("parentFieldName");
+            CallbuildTreeSubNodes.Params.Add("parentOID");
+            CallbuildTreeSubNodes.Params.Add("CaptionField");
+            CallbuildTreeSubNodes.Params.Add("node");
+            CallbuildTreeSubNodes.Params.Add("VCName");
+            CallbuildTreeSubNodes.Params.Add("mode");
+            CallbuildTreeSubNodes.Content.AppendLine("var srv=eval(\"ServiceHandle.\"+theBPOName+\"Service\");");
+            CallbuildTreeSubNodes.Content.AppendLine("var headObj = new Object();");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj = ServiceHandle.createCallOptions();");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.async = false;");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.params = new Array();");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.params.BCName = BCName;");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.params.parentFieldName = parentFieldName;");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.params.parentOID = parentOID;");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.params.CaptionField = CaptionField;");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.funcName = \"buildTreeSubNodes\";");
+            CallbuildTreeSubNodes.Content.AppendLine("if (mode==1){");
+            CallbuildTreeSubNodes.Content.AppendLine("   callObj.funcName = \"buildTreeSubNodesWithChild\";");
+            CallbuildTreeSubNodes.Content.AppendLine("   callObj.params.VCName = VCName;");
+            CallbuildTreeSubNodes.Content.AppendLine("}");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.SOAPHeader = new Array();");
+            CallbuildTreeSubNodes.Content.AppendLine("callObj.SOAPHeader[0] = headObj;");
+            CallbuildTreeSubNodes.Content.AppendLine("var result =srv.callService(callObj);");
+            CallbuildTreeSubNodes.Content.AppendLine("if(result.error==true){");
+            CallbuildTreeSubNodes.Content.AppendLine("   var xfaultstring = result.errorDetail.string;");
+            CallbuildTreeSubNodes.Content.AppendLine("   alert(xfaultstring);");
+            CallbuildTreeSubNodes.Content.AppendLine("   return;");
+            CallbuildTreeSubNodes.Content.AppendLine("}");
+            CallbuildTreeSubNodes.Content.AppendLine("if(result.error==false){");
+            CallbuildTreeSubNodes.Content.AppendLine("   var xmldoc=result.raw;");
+            CallbuildTreeSubNodes.Content.AppendLine("   var s=result.value.split(\"~UCMLSPLIT~\");");
+            CallbuildTreeSubNodes.Content.AppendLine("   if (s.length>1){");
+            CallbuildTreeSubNodes.Content.AppendLine("      localxml.loadXML(s[1]);");
+            CallbuildTreeSubNodes.Content.AppendLine("      for ( var i=0;i<UseTableList.length;i++)");
+            CallbuildTreeSubNodes.Content.AppendLine("      {");
+            CallbuildTreeSubNodes.Content.AppendLine("         UseTableList[i].AddDataRecords(localxml);");
+            CallbuildTreeSubNodes.Content.AppendLine("      }");
+            CallbuildTreeSubNodes.Content.AppendLine("   }");
+            CallbuildTreeSubNodes.Content.AppendLine("   node.setAttribute(\"TreeNodeSrc\",s[0]);");
+            CallbuildTreeSubNodes.Content.AppendLine("}");
+            
+            bpoHtc.FuncList.Add(CallbuildTreeSubNodes);
+
+            //StartBCLink
+            JsFunction StartBCLink = new JsFunction("StartBCLink");
+            StartBCLink.Params.Add("BCLink");
+            StartBCLink.Content.AppendLine("if (BCLink.BCRunMode!=4){");
+            StartBCLink.Content.AppendLine("   if (BCLink.BCRunMode==5){");
+            StartBCLink.Content.AppendLine("      eval(BCLink.urlFuncName+\"(BCLink)\");");
+            StartBCLink.Content.AppendLine("      return;");
+            StartBCLink.Content.AppendLine("   }");
+            StartBCLink.Content.AppendLine("   var theMainPanel=window.document.forms[0];");
+            StartBCLink.Content.AppendLine("   var bcObject= theMainPanel.parentElement.all[BCLink.BCName+'BPO'];");
+            StartBCLink.Content.AppendLine("   for ( var i=0;i<UseTableList.length;i++)");
+            StartBCLink.Content.AppendLine("   {");
+            StartBCLink.Content.AppendLine("      UseTableList[i].NotifyControls(\"HideSelect\");");
+            StartBCLink.Content.AppendLine("   }");
+            StartBCLink.Content.AppendLine("   if (bcObject==null){");
+            StartBCLink.Content.AppendLine("      var sHTML ='<div id=\"'+BCLink.BCName+'BPO\" style=\"Z-INDEX: 103;LEFT: 0px; BEHAVIOR: url('+UCMLLocalResourcePath+'BCClient/'+BCLink.BCName+'.htc); WIDTH: 100%; POSITION: absolute; TOP: 0px; HEIGHT: 200px\"></div>';");
+            StartBCLink.Content.AppendLine("      theMainPanel.parentElement.insertAdjacentHTML(\"BeforeEnd\", sHTML);");
+            StartBCLink.Content.AppendLine("      var bcObject= theMainPanel.parentElement.all[BCLink.BCName+'BPO'];");
+            StartBCLink.Content.AppendLine("      theCurrentBCLink=BCLink;");
+            StartBCLink.Content.AppendLine("      bcObject.moveable=true;");
+            StartBCLink.Content.AppendLine("      bcObject.attachEvent(\"onreadystatechange\", OnBCReady);");
+            StartBCLink.Content.AppendLine("   }");
+            StartBCLink.Content.AppendLine("   else{");
+            StartBCLink.Content.AppendLine("      bcObject.Visible=false;");
+            StartBCLink.Content.AppendLine("      bcObject.BCLink=BCLink;");
+            StartBCLink.Content.AppendLine("      bcObject.targetTable = eval(BCLink.targetTable + \"Base\");");
+            StartBCLink.Content.AppendLine("      bcObject.srcFieldName = BCLink.srcFieldName;");
+            StartBCLink.Content.AppendLine("      bcObject.destFieldName = BCLink.destFieldName;");
+            StartBCLink.Content.AppendLine("      bcObject.Visible=true;");
+            StartBCLink.Content.AppendLine("      bcObject.InitBusinessEnv();");
+            StartBCLink.Content.AppendLine("   }");
+            StartBCLink.Content.AppendLine("}");
+            StartBCLink.Content.AppendLine("else");
+            StartBCLink.Content.AppendLine("   window.open(eval(BCLink.urlFuncName+\"(BCLink)\"),\"\",\"location=no,menubar=yes,toolbar=no,status=no,directories=no,scrollbars=yes,resizable=yes\");");
+            StartBCLink.Content.AppendLine("}");
+
+            bpoHtc.FuncList.Add(StartBCLink);
+
+            //OnBCReady
+            JsFunction OnBCReady = new JsFunction("OnBCReady");
+            OnBCReady.Content.AppendLine("var theMainPanel=window.document.forms[0];");
+            OnBCReady.Content.AppendLine("var bcObject= theMainPanel.parentElement.all[theCurrentBCLink.BCName+'BPO'];");
+            OnBCReady.Content.AppendLine("bcObject.onclose = onpopupclose;");
+            OnBCReady.Content.AppendLine("bcObject.targetTable = eval(theCurrentBCLink.targetTable+\"Base\");");
+            OnBCReady.Content.AppendLine("bcObject.srcFieldName = theCurrentBCLink.srcFieldName;");
+            OnBCReady.Content.AppendLine("bcObject.destFieldName = theCurrentBCLink.destFieldName;");
+            OnBCReady.Content.AppendLine("bcObject.InitApplet(theCurrentBCLink);");
+
+            bpoHtc.FuncList.Add(OnBCReady);
+
+            //onpopupclose
+            JsFunction onpopupclose = new JsFunction("onpopupclose");
+            onpopupclose.Content.AppendLine("for ( var i=0;i<UseTableList.length;i++)");
+            onpopupclose.Content.AppendLine("{");
+            onpopupclose.Content.AppendLine("   UseTableList[i].NotifyControls(\"ShowSelect\");");
+            onpopupclose.Content.AppendLine("}");
+            bpoHtc.FuncList.Add(onpopupclose);
+
+
+
+            //getURLParameters
+            JsFunction getURLParameters = new JsFunction("getURLParameters");
+            getURLParameters.Params.Add("ParamName");
+            getURLParameters.Content.AppendLine("var sURL = window.document.URL.toString();");
+            getURLParameters.Content.AppendLine("if (sURL.indexOf(\"?\") > 0){");
+            getURLParameters.Content.AppendLine("   var arrParams = sURL.split(\"?\");");
+            getURLParameters.Content.AppendLine("   var arrURLParams = arrParams[1].split(\" & \");");
+            getURLParameters.Content.AppendLine("   var arrParamNames = new Array(arrURLParams.length);");
+            getURLParameters.Content.AppendLine("   var arrParamValues = new Array(arrURLParams.length);");
+            getURLParameters.Content.AppendLine("   var i = 0;");
+            getURLParameters.Content.AppendLine("   for (i=0;i<arrURLParams.length;i++)");
+            getURLParameters.Content.AppendLine("   {");
+            getURLParameters.Content.AppendLine("      var sParam =  arrURLParams[i].split(\" = \");");
+            getURLParameters.Content.AppendLine("      arrParamNames[i] = sParam[0];");
+            getURLParameters.Content.AppendLine("      if (sParam[1] != \"\")arrParamValues[i] = unescape(sParam[1]);");
+            getURLParameters.Content.AppendLine("      else arrParamValues[i] = \"No Value\";");
+            getURLParameters.Content.AppendLine("   }");
+            getURLParameters.Content.AppendLine("   for (i=0;i<arrURLParams.length;i++)");
+            getURLParameters.Content.AppendLine("   {");
+            getURLParameters.Content.AppendLine("      if (arrParamNames[i]==ParamName) return  arrParamValues[i];");
+            getURLParameters.Content.AppendLine("   }");
+            getURLParameters.Content.AppendLine("}");
+            getURLParameters.Content.AppendLine("return null;");
+            
+            bpoHtc.FuncList.Add(getURLParameters);
+
+            //createXMLObject
+            JsFunction createXMLObject = new JsFunction("createXMLObject");
+            createXMLObject.Content.AppendLine("try {");
+            createXMLObject.Content.AppendLine("   var l_objActiveXObject = new ActiveXObject(\"Msxml2.DOMDocument\");");
+            createXMLObject.Content.AppendLine("   return l_objActiveXObject;");
+            createXMLObject.Content.AppendLine("}");
+            createXMLObject.Content.AppendLine("catch(e){");
+            createXMLObject.Content.AppendLine("   try{");
+            createXMLObject.Content.AppendLine("      l_objActiveXObject = new ActiveXObject(\"Msxml.DOMDocument\");");
+            createXMLObject.Content.AppendLine("      return l_objActiveXObject;");
+            createXMLObject.Content.AppendLine("   }");
+            createXMLObject.Content.AppendLine("   catch(e){");
+            createXMLObject.Content.AppendLine("      try{");
+            createXMLObject.Content.AppendLine("         l_objActiveXObject = new ActiveXObject(\"Microsoft.XMLDOM\");");
+            createXMLObject.Content.AppendLine("         return l_objActiveXObject;");
+            createXMLObject.Content.AppendLine("      }");
+            createXMLObject.Content.AppendLine("      catch(e){");
+            createXMLObject.Content.AppendLine("         errorHandler(e, \"createXMLObject\"); ");
+            createXMLObject.Content.AppendLine("      }");
+            createXMLObject.Content.AppendLine("   }");
+            createXMLObject.Content.AppendLine("}");
+            
+            bpoHtc.FuncList.Add(createXMLObject);
+
+            //ShowMessage
+            JsFunction ShowMessage = new JsFunction("ShowMessage");
+            ShowMessage.Content.AppendLine("MsgPanel.style.visibility=\"visible\";");
+            ShowMessage.Content.AppendLine("MsgPanel.innerHTML=str;");
+            bpoHtc.FuncList.Add(ShowMessage);
+
+            //HideMessage
+            JsFunction HideMessage = new JsFunction("HideMessage");
+            HideMessage.Content.AppendLine("MsgPanel.style.visibility=\"hidden\";");
+
+            bpoHtc.FuncList.Add(HideMessage);
+
+
+            //装备完毕
+
             return true;
         }
     }

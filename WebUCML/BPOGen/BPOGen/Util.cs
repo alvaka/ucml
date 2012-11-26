@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Data.SqlClient;
+using System.IO;
 
 namespace UCML.IDE.WebUCML
 {
@@ -18,6 +19,21 @@ namespace UCML.IDE.WebUCML
                 if (lines.Length > 1) return lines;
             }
             return new string[] { text };
+        }
+
+        public static bool SaveTextFile(string context, string path)
+        {
+            try
+            {
+                StreamWriter writer = new StreamWriter(path);
+                writer.Write(context);
+                writer.Close();
+            }
+            catch (IOException e)
+            {
+                return false;
+            }
+            return true;
         }
 
         public static String  GetDBConnecString(string serv,string database,string user,string passwd)
@@ -39,6 +55,12 @@ namespace UCML.IDE.WebUCML
         {
             if (reader.IsDBNull(index)) return false;
             else return reader.GetBoolean(index);
+        }
+
+        public static int GetProperInt(SqlDataReader reader, int index)
+        {
+            if (reader.IsDBNull(index)) return 0;
+            else return reader.GetInt32(index);
         }
     }
 

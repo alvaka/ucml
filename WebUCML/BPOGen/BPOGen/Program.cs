@@ -149,6 +149,31 @@ namespace UCML.IDE.WebUCML
         public static List<UcmlVcColumn> PrepareVcColumn(SqlConnection conn, int vcOid)
         {
             List<UcmlVcColumn> columns = new List<UcmlVcColumn>();
+            StringBuilder sql = new StringBuilder("select ");
+            sql.Append("FieldName,ChineseName,AllowEdit,Visible,Width,fFixColumn,FixColumnValue,fCustomerControl,CustomerControlHTC,ControlID,EditContrl ");
+            sql.Append("from AppletColumnDataSet ");
+            sql.Append("where AppletOID="+vcOid);
+
+            SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                UcmlVcColumn column = new UcmlVcColumn();
+                column.FieldName = Util.GetPropString(reader, 0);
+                column.Caption = Util.GetPropString(reader, 1);
+                column.fCanModify = Util.GetPropBool(reader, 2);
+                column.fDisplay = Util.GetPropBool(reader, 3);
+                column.Width = Util.GetProperInt(reader, 4);
+                column.fFixColumn = Util.GetPropBool(reader, 5);
+                column.FixColumnValue = Util.GetPropString(reader, 6);
+                column.fCustomerControl = Util.GetPropBool(reader, 7);
+                column.CustomerControlHTC = Util.GetPropString(reader, 8);
+                column.ControlID = Util.GetPropString(reader, 9);
+                column.EditContrl = Util.GetPropString(reader, 10);
+
+                columns.Add(column);
+            }
             return columns;
         }
 
@@ -180,9 +205,46 @@ namespace UCML.IDE.WebUCML
             return bcList;
         }
 
-        public static List<BusiCompColumn> PrepareVcColumn(SqlConnection conn, int vcOid)
+        public static List<BusiCompColumn> PrepareBcColumn(SqlConnection conn, int bcOid)
         {
             List<BusiCompColumn> columns = new List<BusiCompColumn>();
+            StringBuilder sql = new StringBuilder("select ");
+            sql.Append("FieldName,ChineseName,AllowEdit,Visible,");
+            sql.Append("FieldLength,DecLength,FieldType,Width,SortMode,fUseCodeTable,CodeTable,fAllowNull,DefaultValue,");
+            sql.Append("LookupField,LookupDataSet,fForeignKey,FieldKindEx,CustomSQLColumn,ExcelColNo,fFunctionInitValue,InitValueFunc ");
+            sql.Append("from BusinessColumnDataSet ");
+            sql.Append("where BusinessTableOID=" + bcOid);
+
+            SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
+            SqlDataReader reader = cmd.ExecuteReader();
+
+            while (reader.Read())
+            {
+                BusiCompColumn column = new BusiCompColumn();
+                column.FieldName = Util.GetPropString(reader, 0);
+                column.Caption = Util.GetPropString(reader, 1);
+                column.fCanModify = Util.GetPropBool(reader, 2);
+                column.fDisplay = Util.GetPropBool(reader, 3);
+                column.FieldLength = Util.GetProperInt(reader, 4);
+                column.DecLength = Util.GetProperInt(reader, 5);
+                column.FieldType = Util.GetProperInt(reader, 6);
+                column.Width = Util.GetProperInt(reader, 7);
+                column.SortMode = Util.GetProperInt(reader, 8);
+                column.fUseCodeTable = Util.GetPropBool(reader, 9);
+                column.CodeTable = Util.GetPropString(reader, 10);
+                column.fAllowNull = Util.GetPropBool(reader, 11);
+                column.DefaultValue = Util.GetPropString(reader, 12);
+                column.LookupKeyField = Util.GetPropString(reader, 13);
+                column.LookupDataSet = Util.GetPropString(reader, 14);
+                column.fForeignKey = Util.GetPropBool(reader, 15);
+                column.FieldKind = Util.GetProperInt(reader, 16);
+                column.CustomSQLColumn = Util.GetPropString(reader, 17);
+                column.ExcelColNo = Util.GetProperInt(reader, 18);
+                column.fFunctionInitValue = Util.GetPropBool(reader, 19);
+                column.InitValueFunc = Util.GetPropString(reader, 20);
+
+                columns.Add(column);
+            }
             return columns;
         }
     }

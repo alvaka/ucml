@@ -73,6 +73,7 @@ namespace UCML.IDE.WebUCML
             return true;
         }
     }
+
     public class UcmlVcColumn
     {
         public string FieldName;
@@ -89,6 +90,7 @@ namespace UCML.IDE.WebUCML
         public string EditContrl;
 
     }
+
     public class UcmlVcTabPage
     {
         public List<UcmlViewCompnent> VCList;

@@ -7,6 +7,7 @@ namespace UCML.IDE.WebUCML
 {
     public class UcmlBusiCompPropSet
     {
+        public int OID;
         public string Name;
         public string Caption;
         public string TableName;

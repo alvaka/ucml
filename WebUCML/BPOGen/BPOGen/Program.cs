@@ -12,71 +12,68 @@ namespace UCML.IDE.WebUCML
     {
         static void Main(string[] args)
         {
-            ////添加JS引用，JS函数定义
-            //HtmlNode jsLink = JsContext.GetJsLinkTag("js/ucmlapp.js");
-            //JsContext jsContext = new JsContext();
-            //jsContext.AddFunction("Init", "alert('Document Initial Event!')");
-            //page.Head.Append(jsLink);
-            //page.Head.Append(jsContext.GetJsBlockNode());
-
-            ////初始化BODY
-            //page.InitPage();
-
-            ////添加VC页面
-            //page.AddVCPage(vc);
-            //Console.WriteLine(page.ToString());
-            //CSharpFunction fun1 = new CSharpFunction("Function1");
-            //fun1.AccessAuth = AccessAuthority.PUBLIC;
-            //fun1.ReturnType = "void";
-            //fun1["string"] = "para1";
-            //fun1["int"] = "para2";
-            //fun1.Append("int a=1;\r\nConsole.Write(para1+\" \"+para2);");
-            //CSharpClassField field = new CSharpClassField("string", "_Name");
-            //CSharpClassAttribute attr = new CSharpClassAttribute("Name",field);
-            //CSharpClass testClass = new CSharpClass("Demo");
-            //testClass.FunctionList.Add(fun1);
-            //testClass.FieldList.Add(field);
-            //testClass.AttributeList.Add(attr);
-            ////Console.WriteLine(field.ToString());
-            ////Console.WriteLine(attr.ToString());
-            ////Console.WriteLine(fun1.ToString());
-
-            //CSharpDoc doc = new CSharpDoc("page.cs", "ALVA");
-            //doc.InnerClass.Add(testClass);
-            //Console.Write(doc.ToString());
-            //string connStr = Util.GetDBConnecString("(local)", "UCMLWEBIDEX", "sa", "goodluck");
             string connStr = Util.GetDBConnecString("(local)", "UCMLWEBIDEX", "sa", "goodluck");
             SqlConnection conn = new SqlConnection(connStr);
             conn.Open();
             int bpoid = 14356;
             BpoPropertySet bps = PrepareBPS(conn, bpoid);
             UcmlBPO ubpo = new UcmlBPO(bps, "UCMLCommon");
-            ubpo.SavePath = "E:\\tmp\\";
+            ubpo.SavePath = @"E:\workspace\goldframe\web_platform\UCMLWebDev\BPObject";
             ubpo.VcTabList = PrepareVcTab(conn, bpoid);
-            //ubpo.BuildPageCs();
+            ubpo.BCList = PrepareBC(conn, bpoid);
+
+            //生成bpo.aspx页面并保存
             ubpo.BuildAspxPage();
             ubpo.SaveAspxPage();
 
-            //ubpo.BuildAsmxCs();
+            //生成bpo.aspx.cs 页面并保存
+            ubpo.BuildAspxPageCs();
+            ubpo.SaveAspxCs();
+            //生成bpo.htc 并保存
+            ubpo.BuildBpoHtc();
+            ubpo.SaveHtc();
+            //生成bpoService.asmx
+            ubpo.BuildAsmxPage();
+            ubpo.SaveAsmxPage();
 
-            //Console.Write(ubpo.PageCs.ToString());
-            Console.Write(ubpo.Page.ToString());
-            //Console.Write(ubpo.AsmxCs.ToString());
-            Console.ReadKey();
+            ubpo.BuildAsmxCs();
+            ubpo.SaveAsmxCs();
+            //生成bpodesign.cs
+            ubpo.BuildAspxPageDesignCs();
+            ubpo.SavePageDesignCs();
+
+            //Console.Write(ubpo.Page.ToString());
+            //Console.ReadKey();
             
         }
+
         //根据BPO GUID准备BPO数据
         public static BpoPropertySet PrepareBPS(SqlConnection conn, int guid)
         {
             BpoPropertySet bps = new BpoPropertySet();
             bps.GUID = guid;
-            string sql = "select ClassName,ChineseName from UCMLClassDataSet where UCMLClassOID="+guid;
-            SqlCommand cmd = new SqlCommand(sql, conn);
+            StringBuilder sql = new StringBuilder("select ");
+            sql.Append("ClassName,ChineseName,isInFlow,fSysUseBPO,fHavePageNavi,fRegisterBPO,fMutiLangugeSupport,fXHTMLForm,");
+            sql.Append("EnableConfig,fUseSkin, SkinSrc ");
+            sql.Append("from UCMLClassDataSet ");
+            sql.Append("where UCMLClassOID="+guid);
+            SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
             SqlDataReader reader= cmd.ExecuteReader();
             if (reader.Read())
             {
-                bps.Name = reader.GetString(0);
-                bps.Capiton = reader.GetString(1);
+                bps.GUID = guid;
+                bps.Name = Util.GetPropString(reader,0);
+                bps.Capiton = Util.GetPropString(reader,1);
+                bps.fInFlow = Util.GetPropBool(reader, 2);
+                bps.fSystemBPO = Util.GetPropBool(reader, 3);
+                bps.fHavePageNavi = Util.GetPropBool(reader, 4);
+                bps.fRegisterBPO = Util.GetPropBool(reader, 5);
+                bps.fMutiLangugeSupport = Util.GetPropBool(reader, 6);
+                bps.fXHTMLForm = Util.GetPropBool(reader, 7);
+                bps.fEnableConfig = Util.GetPropBool(reader, 8);
+                bps.fUseSkin = Util.GetPropBool(reader, 9);
+                bps.SkinSrc = Util.GetPropString(reader, 10);
+
             }
             reader.Close();
             reader = null;
@@ -129,6 +126,10 @@ namespace UCML.IDE.WebUCML
             //将有父子层关系的放入一个VCTab里
             foreach (UcmlViewCompnent vc in vcList)
             {
+                //加载列信息
+                vc.Columns = PrepareVcColumn(conn, vc.OID);
+
+                //根据主VC生成VCTab
                 if (vc.LinkPOID == 0) 
                 {
                     UcmlVcTabPage vcTab=vcTab = new UcmlVcTabPage();
@@ -174,6 +175,8 @@ namespace UCML.IDE.WebUCML
 
                 columns.Add(column);
             }
+            reader.Close();
+
             return columns;
         }
 
@@ -181,7 +184,7 @@ namespace UCML.IDE.WebUCML
         {
             List<UcmlBusiCompPropSet> bcList = new List<UcmlBusiCompPropSet>();
             //构造sql
-            StringBuilder sql = new StringBuilder("select b.BCName,b.ChineseName,a.RootTable,b.DataMember,a.AllowModifyJION,a.LinkKeyName,a.PK_COLUMN_NAME,c.fCustomKey ");
+            StringBuilder sql = new StringBuilder("select b.BCName,b.ChineseName,a.RootTable,b.DataMember,a.AllowModifyJION,a.LinkKeyName,a.PK_COLUMN_NAME,c.fCustomKey,a.BusinessTableOID");
             sql.Append(" from BusiCompLinkDataSet as a,BusinessTableDataSet as b ,UCMLClassDataSet as c ");
             sql.Append("where a.BusinessTableOID=b.BusinessTableOID and b.DataMember=c.ClassName  and a.UCMLClassOID=" + bpoid);
 
@@ -199,9 +202,18 @@ namespace UCML.IDE.WebUCML
                 bc.LinkKeyName = Util.GetPropString(reader, 5);
                 bc.PK_COLUMN_NAME = Util.GetPropString(reader, 6);
                 bc.fHaveUCMLKey = Util.GetPropBool(reader, 7);
+                bc.OID = Util.GetProperInt(reader, 8);
 
                 bcList.Add(bc);
             }
+            reader.Close();
+
+            foreach (UcmlBusiCompPropSet bc in bcList)
+            {
+                //获取列信息
+                bc.Columns = PrepareBcColumn(conn, bc.OID);
+            }
+
             return bcList;
         }
 
@@ -245,6 +257,8 @@ namespace UCML.IDE.WebUCML
 
                 columns.Add(column);
             }
+            reader.Close();
+
             return columns;
         }
     }

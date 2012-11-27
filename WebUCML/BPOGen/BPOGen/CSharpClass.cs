@@ -26,9 +26,14 @@ namespace UCML.IDE.WebUCML
             AttributeList = new List<CSharpClassAttribute>();
             this.AccessAuth = AccessAuthority.PRIVATE;
             this.BaseClass = "";
-            DefaultConstruct = CSharpFunction.GetConstruction(name);
+        }
+
+        public void AddDefaultConstruct()
+        {
+            DefaultConstruct = CSharpFunction.GetConstruction(this.Name);
             FunctionList.Add(DefaultConstruct);
         }
+
         public void AddFunction(CSharpFunction fun)
         {
             FunctionList.Add(fun);
@@ -82,19 +87,21 @@ namespace UCML.IDE.WebUCML
         public bool IsAbstract;
         public bool IsNew;
         public string ReturnType;
-        public Dictionary<string, string> Paramters;
+        public Dictionary<string, string> Parameters;
+        public List<string> BaseParameters;
 
         public string this[string key]
         {
-            get { return Paramters[key]; }
-            set { Paramters[key] = value; }
+            get { return Parameters[key]; }
+            set { Parameters[key] = value; }
         }
 
         public StringBuilder Content;
         public CSharpFunction(string name)
         {
             this.Name = name;
-            Paramters = new Dictionary<string, string>();
+            Parameters = new Dictionary<string, string>();
+            BaseParameters = new List<string>();
             Content = new StringBuilder();
         }
 
@@ -123,12 +130,20 @@ namespace UCML.IDE.WebUCML
             }
             sb.Append(Name + "(");
             string param = "";
-            foreach (string key in Paramters.Keys)
+            foreach (string key in Parameters.Keys)
             {
-                param += (key + " " + Paramters[key] + ",");
+                param += (key + " " + Parameters[key] + ",");
             }
             if (param != "") sb.Append(param.Substring(0, param.Length - 1));
-            sb.AppendLine(")");
+            sb.Append(")");
+            if (this.IsContruction && this.BaseParameters.Count != 0)
+            {
+                sb.Append(":base(");
+                for (int i = 0; i < BaseParameters.Count - 1; i++)
+                    sb.Append(BaseParameters[i] + ",");
+                sb.AppendLine(BaseParameters[BaseParameters.Count - 1] + ")");
+            }
+            else sb.AppendLine();
             sb.AppendLine("{");
             string[] lines = Util.SplitLine(Content.ToString());
             for (int i = 0; i < lines.Length; i++)

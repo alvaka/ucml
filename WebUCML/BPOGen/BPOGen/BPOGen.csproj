@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsmxDoc.cs" />
     <Compile Include="AspxPage.cs" />
     <Compile Include="BPObject.cs" />
     <Compile Include="BpoPropertySet.cs" />

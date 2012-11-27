@@ -11,6 +11,7 @@ namespace UCML.IDE.WebUCML
         public List<string> ReferenceNS;
         public string Namespace;
         public List<CSharpClass> InnerClass;
+
         public CSharpDoc(string name, string ns)
         {
             this.Name = name;
@@ -19,12 +20,14 @@ namespace UCML.IDE.WebUCML
             InnerClass = new List<CSharpClass>();
             AddDefaultRefNS();   
         }
+
         public void AddDefaultRefNS()
         {
             this.ReferenceNS.Add("System");
-            this.ReferenceNS.Add("System.Collection.Generic");
+            this.ReferenceNS.Add("System.Collections.Generic");
             this.ReferenceNS.Add("System.Text");
         }
+
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
@@ -46,6 +49,13 @@ namespace UCML.IDE.WebUCML
             }
             sb.Append("}");
             return sb.ToString();
+        }
+
+        public bool Save(string path)
+        {
+            if (path == null || path == "") return false;
+            if (!path.EndsWith("\\")) path += "\\";
+            return Util.SaveTextFile(this.ToString(), path + this.Name);
         }
     }
 }

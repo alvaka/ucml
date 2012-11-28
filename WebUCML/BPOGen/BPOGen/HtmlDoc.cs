@@ -8,7 +8,6 @@ namespace UCML.IDE.WebUCML
     public class HtmlDocument
     {
         protected HtmlNode _RootNode;
-        protected string _CharSet="gb2312";
         protected string _DocType="html";
         protected HtmlNode _Head;
         protected HtmlNode _Body;
@@ -27,10 +26,6 @@ namespace UCML.IDE.WebUCML
             get { return _RootNode; }
         }
 
-        public string CharSet
-        {
-            get { return _CharSet; }
-        }
         public string DocType
         {
             get { return _DocType; }
@@ -42,13 +37,12 @@ namespace UCML.IDE.WebUCML
         public HtmlDocument(string title) 
         {
             _DocType = "html";
-            _CharSet = "gb2312";
             InitStandardDocument(title);
         }
         public HtmlDocument(string docType,string charset)
         {
             _DocType = docType;
-            _CharSet = charset;
+        
             InitStandardDocument("");
         }
 
@@ -59,11 +53,6 @@ namespace UCML.IDE.WebUCML
             HtmlNode titleNode = new HtmlNode("title");
             if(title!="")titleNode.Append(HtmlNode.CreateTextNode(title)); //标题非即添加文本节点
             head.Append(titleNode);
-
-            HtmlNode metaChar = HtmlNode.CreateClosedNode("meta");
-            metaChar.Attributes["http-equiv"] = "Content-type";
-            metaChar.Attributes["content"] = "text/html; charset="+_CharSet;
-            head.Append(metaChar);
 
             this.RootNode.Append(head);
             HtmlNode body = new HtmlNode("body");

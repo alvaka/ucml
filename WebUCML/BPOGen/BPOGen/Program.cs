@@ -19,8 +19,10 @@ namespace UCML.IDE.WebUCML
             BpoPropertySet bps = PrepareBPS(conn, bpoid);
             UcmlBPO ubpo = new UcmlBPO(bps, "UCMLCommon");
             ubpo.SavePath = @"E:\workspace\goldframe\web_platform\UCMLWebDev\BPObject";
+            //ubpo.SavePath = @"E:\tmp\";
             ubpo.VcTabList = PrepareVcTab(conn, bpoid);
             ubpo.BCList = PrepareBC(conn, bpoid);
+            ubpo.SetVCPostion();
 
             //生成bpo.aspx页面并保存
             ubpo.BuildAspxPage();
@@ -87,7 +89,7 @@ namespace UCML.IDE.WebUCML
             List<UcmlViewCompnent> vcList = new List<UcmlViewCompnent>();
 
             //构造SQL函数，获取BPO下的所有VC
-            StringBuilder sql = new StringBuilder("select a.AppletOID,a.ParentOID,b.AppletName,b.Caption,b.fTreeGridMode,b.fSubTableTreeMode,b.ImageLink,b.SubBCs,b.SubParentFields,b.SubPicFields,b.SubLabelFields,b.SubFKFields,b.TargetHTMLSource ,b.AllowEdit,a.fHidden,b.UserDesignWebPage,a.alignHeight,a.alignWidth,c.BCName,a.AppletOID ");
+            StringBuilder sql = new StringBuilder("select a.AppletOID,a.ParentOID,b.AppletName,b.Caption,b.fTreeGridMode,b.fSubTableTreeMode,b.ImageLink,b.SubBCs,b.SubParentFields,b.SubPicFields,b.SubLabelFields,b.SubFKFields,b.TargetHTMLSource ,b.AllowEdit,a.fHidden,b.UserDesignWebPage,a.alignHeight,a.alignWidth,c.BCName,a.AppletOID,b.AllowAddNew ");
             sql.Append("from BusiViewCompLinkDataSet as a,AppletDataSet as b,BusinessTableDataSet as c ");
             sql.Append("where a.AppletOID=b.AppletOID and c.BusinessTableOID=b.BusinessTableOID and a.UCMLClassOID=" + bpoid);
             
@@ -117,6 +119,7 @@ namespace UCML.IDE.WebUCML
                 vc.alignWidth = Util.GetPropBool(reader, 17);
                 vc.BCName = Util.GetPropString(reader, 18);
                 vc.OID = Util.GetProperInt(reader, 19);
+                vc.haveMenu = Util.GetPropBool(reader, 20);
 
                 vcList.Add(vc);
             }
@@ -157,7 +160,7 @@ namespace UCML.IDE.WebUCML
 
             SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
             SqlDataReader reader = cmd.ExecuteReader();
-
+            int i = 0;
             while (reader.Read())
             {
                 UcmlVcColumn column = new UcmlVcColumn();
@@ -172,7 +175,8 @@ namespace UCML.IDE.WebUCML
                 column.CustomerControlHTC = Util.GetPropString(reader, 8);
                 column.ControlID = Util.GetPropString(reader, 9);
                 column.EditContrl = Util.GetPropString(reader, 10);
-
+                column.CurrentPos = i;
+                i++;
                 columns.Add(column);
             }
             reader.Close();
@@ -203,7 +207,7 @@ namespace UCML.IDE.WebUCML
                 bc.PK_COLUMN_NAME = Util.GetPropString(reader, 6);
                 bc.fHaveUCMLKey = Util.GetPropBool(reader, 7);
                 bc.OID = Util.GetProperInt(reader, 8);
-
+                
                 bcList.Add(bc);
             }
             reader.Close();
@@ -230,6 +234,7 @@ namespace UCML.IDE.WebUCML
             SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
             SqlDataReader reader = cmd.ExecuteReader();
 
+           
             while (reader.Read())
             {
                 BusiCompColumn column = new BusiCompColumn();
@@ -254,7 +259,7 @@ namespace UCML.IDE.WebUCML
                 column.ExcelColNo = Util.GetProperInt(reader, 18);
                 column.fFunctionInitValue = Util.GetPropBool(reader, 19);
                 column.InitValueFunc = Util.GetPropString(reader, 20);
-
+                
                 columns.Add(column);
             }
             reader.Close();

@@ -18,7 +18,7 @@ namespace UCML.IDE.WebUCML
             this.Namespace = ns;
             ReferenceNS = new List<string>();
             InnerClass = new List<CSharpClass>();
-            AddDefaultRefNS();   
+            AddDefaultRefNS();
         }
 
         public void AddDefaultRefNS()

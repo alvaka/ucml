@@ -64,9 +64,10 @@ namespace UCML.IDE.WebUCML
             //添加页面指令
             AspxDirective direc4Page = new AspxDirective("Page");
             direc4Page["language"]= "C#";
-            direc4Page["codeBehind"]= Page.PageName+".cs";
+            direc4Page["codeFile"]= Page.PageName+".cs";
             direc4Page["Inherits"]="UCMLCommon."+this.Name;
             direc4Page["AutoEventWireup"]="False";
+            direc4Page["ResponseEncoding"] = "UTF-8";
 
             AspxDirective direc4Reg = new AspxDirective("Register");
             direc4Reg["TagPrefix"]= "iewc";
@@ -115,22 +116,22 @@ namespace UCML.IDE.WebUCML
                 {
                     masterTable = bcBase;
 
-                    init.Content.AppendLine(bcBase+".fIDENTITYKey ="+bc.fIDENTITYKey+";");
-                    init.Content.AppendLine(bcBase + ".AllowModifyJION = "+bc.AllowModifyJION+";");
-                    init.Content.AppendLine(bcBase + ".fHaveUCMLKey = "+bc.fHaveUCMLKey+";");
+                    init.Content.AppendLine(bcBase + ".fIDENTITYKey =" + bc.fIDENTITYKey.ToString().ToLower() + ";");
+                    init.Content.AppendLine(bcBase + ".AllowModifyJION = " + bc.AllowModifyJION.ToString().ToLower() + ";");
+                    init.Content.AppendLine(bcBase + ".fHaveUCMLKey = " + bc.fHaveUCMLKey.ToString().ToLower() + ";");
                     init.Content.AppendLine(bcBase + ".PrimaryKey = \""+bc.PrimaryKey+"\";");
                     init.Content.AppendLine(bcBase + ".Columns = "+this.Name+"BPO."+bc.Name+"Columns;");
-                    init.Content.AppendLine(bcBase + ".ChangeOnlyOwnerBy = "+bc.ChangeOnlyOwnerBy+";");
+                    init.Content.AppendLine(bcBase + ".ChangeOnlyOwnerBy = " + bc.ChangeOnlyOwnerBy.ToString().ToLower() + ";");
                     init.Content.AppendLine(bcBase + ".BPOName = \"" + this.Name + "\";");
                 }
                 else
                 {
-                    init.Content.AppendLine(bcBase + ".fIDENTITYKey = "+bc.fIDENTITYKey+";");
-                    init.Content.AppendLine(bcBase + ".AllowModifyJION = "+bc.AllowModifyJION+";");
-                    init.Content.AppendLine(bcBase + ".fHaveUCMLKey = "+bc.fHaveUCMLKey+";");
+                    init.Content.AppendLine(bcBase + ".fIDENTITYKey = " + bc.fIDENTITYKey.ToString().ToLower() + ";");
+                    init.Content.AppendLine(bcBase + ".AllowModifyJION = " + bc.AllowModifyJION.ToString().ToLower() + ";");
+                    init.Content.AppendLine(bcBase + ".fHaveUCMLKey = " + bc.fHaveUCMLKey.ToString().ToLower() + ";");
                     init.Content.AppendLine(bcBase + ".PrimaryKey = \""+bc.PrimaryKey+"\";");
                     init.Content.AppendLine(bcBase + ".Columns = " + this.Name + "BPO." + bc.Name + "Columns;");
-                    init.Content.AppendLine(bcBase + ".ChangeOnlyOwnerBy = "+bc.ChangeOnlyOwnerBy+";");
+                    init.Content.AppendLine(bcBase + ".ChangeOnlyOwnerBy = " + bc.ChangeOnlyOwnerBy.ToString().ToLower() + ";");
                     init.Content.AppendLine(bcBase + ".TableType = \"S\";");
                     init.Content.AppendLine(bcBase + ".LinkKeyName = \""+bc.LinkKeyName+"\";");
                     init.Content.AppendLine(bcBase + ".PK_COLUMN_NAME = \""+bc.PK_COLUMN_NAME+"\";");
@@ -144,16 +145,16 @@ namespace UCML.IDE.WebUCML
                 foreach (UcmlViewCompnent vc in vcTab.VCList)
                 {
                     init.Content.AppendLine(vc.BCName+"Base.AddConnectControls("+vc.VCName+");");
-                    init.Content.AppendLine(vc.VCName+".UserDefineHTML=\""+vc.UserDefineHTML+"\";");
+                    init.Content.AppendLine(vc.VCName + ".UserDefineHTML=\"" + vc.UserDefineHTML.ToString().ToLower() + "\";");
                     init.Content.AppendLine(vc.VCName+".BPOName=\""+this.Name+"\";");
                     init.Content.AppendLine(vc.VCName+".AppletName=\""+vc.VCName+"\";");
-                    init.Content.AppendLine(vc.VCName+".EnabledEdit="+vc.EnabledEdit+";");
-                    init.Content.AppendLine(vc.VCName+".haveMenu="+vc.haveMenu+";");
+                    init.Content.AppendLine(vc.VCName + ".EnabledEdit=" + vc.EnabledEdit.ToString().ToLower() + ";");
+                    init.Content.AppendLine(vc.VCName + ".haveMenu=" + vc.haveMenu.ToString().ToLower() + ";");
                     init.Content.AppendLine(vc.VCName+".parentNodeID=\"\";");
                     init.Content.AppendLine(vc.VCName+".HiddenID=\"TabStrip_"+vc.VCName+";MultiPage_"+vc.VCName+"\";");
-                    init.Content.AppendLine(vc.VCName+".fHidden=\""+vc.fHidden+"\";");
-                    init.Content.AppendLine(vc.VCName+".alignHeight=\""+vc.alignHeight+"\";");
-                    init.Content.AppendLine(vc.VCName+".alignWidth=\""+vc.alignWidth+"\";");
+                    init.Content.AppendLine(vc.VCName + ".fHidden=\"" + vc.fHidden.ToString().ToLower() + "\";");
+                    init.Content.AppendLine(vc.VCName + ".alignHeight=\"" + vc.alignHeight.ToString().ToLower() + "\";");
+                    init.Content.AppendLine(vc.VCName + ".alignWidth=\"" + vc.alignWidth.ToString().ToLower() + "\";");
 
                     init.Content.AppendLine(vc.VCName+".open();");
                 }
@@ -232,6 +233,7 @@ namespace UCML.IDE.WebUCML
                     //添加ToolBar
                     //添加ToolButton
                     //挂载VC到panel下
+                    if (vc.VCNode.Childs[0].OnlyText) vc.VCNode.Childs.Clear();
                     panel.Append(vc.VCNode);
                     //添加VCName Div
                     HtmlNode div = new HtmlNode("div");
@@ -533,8 +535,8 @@ namespace UCML.IDE.WebUCML
             initCtr.Content.AppendLine("");
             //实例化业务逻辑类
             initCtr.Content.AppendLine("DataSet ds = null;");
-            //initCtr.Content.AppendLine("busiObj = UCMLBusinessObjectFactory.CreateBusinessObject(this.BPOName);");
-            initCtr.Content.AppendLine("busiObj =new " + this.Name + "Service(true);");
+            initCtr.Content.AppendLine("busiObj = UCMLBusinessObjectFactory.CreateBusinessObject(this.BPOName);");
+            //initCtr.Content.AppendLine("busiObj =new " + this.Name + "Service(true);");
 
             initCtr.Content.AppendLine("if (fEnableConfig==true)");
             initCtr.Content.AppendLine("{");
@@ -717,7 +719,7 @@ namespace UCML.IDE.WebUCML
             AsmxCs.ReferenceNS.Add("System.ComponentModel");
             AsmxCs.ReferenceNS.Add("System.Web.Services");
             AsmxCs.ReferenceNS.Add("System.Web");
-            AsmxCs.ReferenceNS.Add("System.Data.SqlClient");
+            
             AsmxCs.ReferenceNS.Add("System.Diagnostics");
             AsmxCs.ReferenceNS.Add("DBLayer");
 
@@ -1150,10 +1152,13 @@ namespace UCML.IDE.WebUCML
                 //Prepare BC Column
                 string bcCol = "__" + bc.Name + "Columns";
                 PrepareColumn.Content.AppendLine(bcCol+" = new Array();");
-                PrepareColumn.Content.AppendLine("objColumn = new Object();");
+               
                 int i = 0;
+                int index = 0;
                 foreach (BusiCompColumn column in bc.Columns)
                 {
+                    if (!column.fDisplay) { i++; continue; };
+                    PrepareColumn.Content.AppendLine("objColumn = new Object();");
                     PrepareColumn.Content.AppendLine("objColumn.FieldName = \""+bc.Columns[i].FieldName+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.Caption = \""+bc.Columns[i].Caption+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.Width = "+bc.Columns[i].Width+";");
@@ -1162,27 +1167,28 @@ namespace UCML.IDE.WebUCML
                     PrepareColumn.Content.AppendLine("objColumn.EditType = \""+bc.Columns[i].EditType+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.FieldType = \""+bc.Columns[i].FieldType+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.CodeTable = \""+bc.Columns[i].CodeTable+"\";");
-                    PrepareColumn.Content.AppendLine("objColumn.fUseCodeTable = "+bc.Columns[i].fUseCodeTable+";");
-                    PrepareColumn.Content.AppendLine("objColumn.fAllowNull = "+bc.Columns[i].fAllowNull+";");
-                    PrepareColumn.Content.AppendLine("objColumn.fDisplay = "+bc.Columns[i].fDisplay+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fUseCodeTable = "+bc.Columns[i].fUseCodeTable.ToString().ToLower()+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fAllowNull = " + bc.Columns[i].fAllowNull.ToString().ToLower() + ";");
+                    PrepareColumn.Content.AppendLine("objColumn.fDisplay = " + bc.Columns[i].fDisplay.ToString().ToLower() + ";");
                     PrepareColumn.Content.AppendLine("objColumn.CurrentPos = "+bc.Columns[i].CurrentPos+";");
                     PrepareColumn.Content.AppendLine("objColumn.DefaultValue = \""+bc.Columns[i].DefaultValue+"\";");
-                    PrepareColumn.Content.AppendLine("objColumn.fCanModify = "+bc.Columns[i].fCanModify+";");
-                    PrepareColumn.Content.AppendLine("objColumn.fAllowPick = "+bc.Columns[i].fAllowPick+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fCanModify = " + bc.Columns[i].fCanModify.ToString().ToLower() + ";");
+                    PrepareColumn.Content.AppendLine("objColumn.fAllowPick = " + bc.Columns[i].fAllowPick.ToString().ToLower() + ";");
                     PrepareColumn.Content.AppendLine("objColumn.RoleTable = \""+bc.Columns[i].RoleTable+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.ForeignKeyField = \""+bc.Columns[i].ForeignKeyField+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.LookupKeyField = \""+bc.Columns[i].LookupKeyField+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.LookupDataSet = \""+bc.Columns[i].LookupDataSet+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.LookupResultField = \""+bc.Columns[i].LookupResultField+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.QueryBPOID = \""+bc.Columns[i].QueryBPOID+"\";");
-                    PrepareColumn.Content.AppendLine("objColumn.fForeignKey = "+bc.Columns[i].fForeignKey+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fForeignKey = " + bc.Columns[i].fForeignKey.ToString().ToLower() + ";");
                     PrepareColumn.Content.AppendLine("objColumn.FieldKind = "+bc.Columns[i].FieldKind+";");
-                    PrepareColumn.Content.AppendLine("objColumn.IsMultiValueField = "+bc.Columns[i].IsMultiValueField+";");
+                    PrepareColumn.Content.AppendLine("objColumn.IsMultiValueField = " + bc.Columns[i].IsMultiValueField.ToString().ToLower() + ";");
                     PrepareColumn.Content.AppendLine("objColumn.MultiValueTable = \""+bc.Columns[i].MultiValueTable+"\";");
-                    PrepareColumn.Content.AppendLine("objColumn.fFunctionInitValue = "+bc.Columns[i].fFunctionInitValue+";");
+                    PrepareColumn.Content.AppendLine("objColumn.fFunctionInitValue = " + bc.Columns[i].fFunctionInitValue.ToString().ToLower() + ";");
                     PrepareColumn.Content.AppendLine("objColumn.InitValueFunc = \""+bc.Columns[i].InitValueFunc+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.ExcelColNo = "+bc.Columns[i].ExcelColNo+";");
-                    PrepareColumn.Content.AppendLine(bcCol+"["+i+"] = objColumn;");
+                    PrepareColumn.Content.AppendLine(bcCol+"["+index+"] = objColumn;");
+                    index++;
                     i++;
                     PrepareColumn.Content.AppendLine("");
                 }
@@ -1210,16 +1216,17 @@ namespace UCML.IDE.WebUCML
                     int i = 0;
                     foreach (UcmlVcColumn column in vc.Columns)
                     {
+                        
                         PrepareColumn.Content.AppendLine("objColumn = new Object();");
                         PrepareColumn.Content.AppendLine("objColumn.FieldName = \""+vc.Columns[i].FieldName+"\";");
                         PrepareColumn.Content.AppendLine("objColumn.Caption = \""+vc.Columns[i].Caption+"\";");
-                        PrepareColumn.Content.AppendLine("objColumn.fDisplay = "+vc.Columns[i].fDisplay+";");
-                        PrepareColumn.Content.AppendLine("objColumn.fCanModify = "+vc.Columns[i].fCanModify+";");
+                        PrepareColumn.Content.AppendLine("objColumn.fDisplay = " + vc.Columns[i].fDisplay.ToString().ToLower() + ";");
+                        PrepareColumn.Content.AppendLine("objColumn.fCanModify = " + vc.Columns[i].fCanModify.ToString().ToLower() + ";");
                         PrepareColumn.Content.AppendLine("objColumn.CurrentPos = "+vc.Columns[i].CurrentPos+";");
                         PrepareColumn.Content.AppendLine("objColumn.Width = "+vc.Columns[i].Width+";");
-                        PrepareColumn.Content.AppendLine("objColumn.fFixColumn = "+vc.Columns[i].fFixColumn+";");
+                        PrepareColumn.Content.AppendLine("objColumn.fFixColumn = " + vc.Columns[i].fFixColumn.ToString().ToLower() + ";");
                         PrepareColumn.Content.AppendLine("objColumn.FixColumnValue = \""+vc.Columns[i].FixColumnValue+"\";");
-                        PrepareColumn.Content.AppendLine("objColumn.fCustomerControl = "+vc.Columns[i].fCustomerControl+";");
+                        PrepareColumn.Content.AppendLine("objColumn.fCustomerControl = " + vc.Columns[i].fCustomerControl.ToString().ToLower() + ";");
                         PrepareColumn.Content.AppendLine("objColumn.CustomerControlHTC = \""+vc.Columns[i].CustomerControlHTC+"\";");
                         PrepareColumn.Content.AppendLine("objColumn.ControlID = \""+vc.Columns[i].ControlID+"\";");
                         PrepareColumn.Content.AppendLine("objColumn.EditContrl = \""+vc.Columns[i].EditContrl+"\";");
@@ -1277,6 +1284,11 @@ namespace UCML.IDE.WebUCML
             JsFunction getbusiView = new JsFunction("getBusiViewModes");
             getbusiView.Content.Append("return __BusiViewModes;");
             bpoHtc.FuncList.Add(getbusiView);
+
+            //getTaskList
+            JsFunction getTaskList = new JsFunction("getTaskList");
+            getTaskList.Content.Append("return TaskList;");
+            bpoHtc.FuncList.Add(getTaskList);
 
             //open函数
             JsFunction open = new JsFunction("open");
@@ -1409,7 +1421,7 @@ namespace UCML.IDE.WebUCML
             ChangeBusiView.Content.AppendLine("if (ServiceHandle!=null)");
             ChangeBusiView.Content.AppendLine("{");
             ChangeBusiView.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
-            ChangeBusiView.Content.AppendLine("    eval(\"objChangeBusiView.CallID =ServiceHandle.\"+theBPOName+\"Service.callService(\"ChangeBusiView\",viewType)\");");
+            ChangeBusiView.Content.AppendLine("    eval(\"objChangeBusiView.CallID =ServiceHandle.\"+theBPOName+\"Service.callService(\\\"ChangeBusiView\\\",viewType)\");");
             ChangeBusiView.Content.AppendLine("}");
             bpoHtc.FuncList.Add(ChangeBusiView);
 
@@ -1517,8 +1529,8 @@ namespace UCML.IDE.WebUCML
             DoResultputTOExcel.Content.AppendLine("        {");
             DoResultputTOExcel.Content.AppendLine("            alert(\"导出失败\");");
             DoResultputTOExcel.Content.AppendLine("        }");
-            DoResultputTOExcel.Content.AppendLine("");
-            DoResultputTOExcel.Content.AppendLine("");
+            DoResultputTOExcel.Content.AppendLine("    }");
+            DoResultputTOExcel.Content.AppendLine("}");
             bpoHtc.FuncList.Add(DoResultputTOExcel);
 
             //condiQuery
@@ -1653,7 +1665,7 @@ namespace UCML.IDE.WebUCML
             FinishTask.Content.AppendLine("if (ServiceHandle!=null)");
             FinishTask.Content.AppendLine("{");
             FinishTask.Content.AppendLine("   ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
-            FinishTask.Content.AppendLine("   eval(\"this.iApplyCallID =ServiceHandle.\"+theBPOName+\"Service.callService(\"FinishTask\",(TaskID))\");");
+            FinishTask.Content.AppendLine("   eval(\"this.iApplyCallID =ServiceHandle.\"+theBPOName+\"Service.callService(\\\"FinishTask\\\",(TaskID))\");");
             FinishTask.Content.AppendLine("}");
             bpoHtc.FuncList.Add(FinishTask);
 
@@ -1806,7 +1818,7 @@ namespace UCML.IDE.WebUCML
             DeltaUpdate.Content.AppendLine("   }");
             DeltaUpdate.Content.AppendLine("}");
 
-            bpoHtc.FuncList.Add(DeltaUpdate);
+            //bpoHtc.FuncList.Add(DeltaUpdate);
 
             //getResourceData
             JsFunction getResourceData = new JsFunction("getResourceData");
@@ -1894,7 +1906,7 @@ namespace UCML.IDE.WebUCML
             StartBCLink.Content.AppendLine("      bcObject.InitBusinessEnv();");
             StartBCLink.Content.AppendLine("   }");
             StartBCLink.Content.AppendLine("}");
-            StartBCLink.Content.AppendLine("else");
+            StartBCLink.Content.AppendLine("else{");
             StartBCLink.Content.AppendLine("   window.open(eval(BCLink.urlFuncName+\"(BCLink)\"),\"\",\"location=no,menubar=yes,toolbar=no,status=no,directories=no,scrollbars=yes,resizable=yes\");");
             StartBCLink.Content.AppendLine("}");
 
@@ -1974,6 +1986,7 @@ namespace UCML.IDE.WebUCML
 
             //ShowMessage
             JsFunction ShowMessage = new JsFunction("ShowMessage");
+            ShowMessage.Params.Add("str");
             ShowMessage.Content.AppendLine("MsgPanel.style.visibility=\"visible\";");
             ShowMessage.Content.AppendLine("MsgPanel.innerHTML=str;");
             bpoHtc.FuncList.Add(ShowMessage);
@@ -1993,7 +2006,7 @@ namespace UCML.IDE.WebUCML
         {
             AspxDirective directive = new AspxDirective("WebService");
             directive["Language"] = "c#";
-            directive["CodeFile"] = this.Name+"asmx.cs";
+            directive["CodeBehind"] = this.Name+"asmx.cs";
             directive["Class"] = Namespace+"."+this.Name+"Service";
             this.AsmxPage.Directives.Add(directive);
 
@@ -2023,6 +2036,39 @@ namespace UCML.IDE.WebUCML
         public bool SaveHtc()
         {
             return this.bpoHtc.Save(this.SavePath);
+        }
+
+        public void SetVCPostion()
+        {
+            foreach(UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    foreach (UcmlVcColumn vcCol in vc.Columns)
+                    {
+                        foreach (UcmlBusiCompPropSet bc in this.BCList)
+                        {
+                            if (bc.Name == vc.BCName)
+                            {
+                                vcCol.CurrentPos = -1;
+                                int pos = 0;
+                                for (int i = 0; i < bc.Columns.Count;i++ )
+                                {
+                                    if (bc.Columns[i].fDisplay)
+                                    {
+                                        if (vcCol.FieldName == bc.Columns[i].FieldName)
+                                        {
+                                            vcCol.CurrentPos = pos;
+                                            break;
+                                        }
+                                        else pos++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

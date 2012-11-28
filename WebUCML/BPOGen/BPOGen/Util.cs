@@ -25,7 +25,7 @@ namespace UCML.IDE.WebUCML
         {
             try
             {
-                StreamWriter writer = new StreamWriter(path);
+                StreamWriter writer = new StreamWriter(path, false, Encoding.UTF8);
                 writer.Write(context);
                 writer.Close();
             }

@@ -17,3 +17,5 @@ E:\workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\bin\Debug\BPOGen.pdb
 E:\workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\obj\x86\Debug\ResolveAssemblyReference.cache
 G:\Workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\obj\x86\Debug\BPOGen.exe
 G:\Workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\obj\x86\Debug\BPOGen.pdb
+G:\Workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\bin\Debug\BPOGen.exe
+G:\Workspace\GitHub\ucml\WebUCML\BPOGen\BPOGen\bin\Debug\BPOGen.pdb

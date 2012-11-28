@@ -6,20 +6,23 @@ using System.Data.SqlClient;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.IO;
+
 namespace UCML.IDE.WebUCML
 {
     class Program
     {
         static void Main(string[] args)
         {
-            string connStr = Util.GetDBConnecString("(local)", "UCMLWEBIDEX", "sa", "goodluck");
+            string connStr = Util.GetDBConnecString("(local)", "UcmlStudy", "sa", "goodluck");
             SqlConnection conn = new SqlConnection(connStr);
             conn.Open();
             int bpoid = 14356;
             BpoPropertySet bps = PrepareBPS(conn, bpoid);
             UcmlBPO ubpo = new UcmlBPO(bps, "UCMLCommon");
-            ubpo.SavePath = @"E:\workspace\goldframe\web_platform\UCMLWebDev\BPObject";
+            ubpo.CompileMode = true;
+            //ubpo.SavePath = @"E:\workspace\goldframe\web_platform\UCMLWebDev\BPObject";
             //ubpo.SavePath = @"E:\tmp\";
+            ubpo.SavePath = @"G:\Workspace\ucml\platform\study\UcmlClass1\BPObject";
             ubpo.VcTabList = PrepareVcTab(conn, bpoid);
             ubpo.BCList = PrepareBC(conn, bpoid);
             ubpo.SetVCPostion();

@@ -9,7 +9,7 @@ namespace UCML.IDE.WebUCML
     {
         private string _Name;
         public string SavePath;
-
+        public bool CompileMode;
         public AspxPage Page;
         private CSharpDoc _PageCs;
         private CSharpDoc PageDesignerCs;
@@ -18,7 +18,8 @@ namespace UCML.IDE.WebUCML
         public  List<UcmlVcTabPage> VcTabList;
         public List<UcmlBusiCompPropSet> BCList;
         public AsmxDoc AsmxPage;
-        public HtcDoc bpoHtc;
+        public HtcDoc BpoHtc;
+        public HtcDoc TableHtc;
         
         public string Namespace;
 
@@ -45,7 +46,8 @@ namespace UCML.IDE.WebUCML
             PageCs = new CSharpDoc(bps.Name+".aspx.cs", Namespace);
             PageDesignerCs = new CSharpDoc(bps.Name + ".designer.cs", Namespace);
             AsmxCs = new CSharpDoc(this.Name+".asmx.cs", Namespace);
-            bpoHtc=new HtcDoc(this.Name+".htc");
+            BpoHtc=new HtcDoc(this.Name+".htc");
+
             this.AsmxPage = new AsmxDoc(this.Name + ".asmx");
 
             VcTabList = new List<UcmlVcTabPage>();
@@ -63,7 +65,9 @@ namespace UCML.IDE.WebUCML
             Page.Head["runat"] = "server";
             //添加页面指令
             AspxDirective direc4Page = new AspxDirective("Page");
-            direc4Page["language"]= "C#";
+            direc4Page["language"] = "C#";
+            if (this.CompileMode) direc4Page["codeBehind"] = Page.PageName + ".cs";
+            else direc4Page["codeFile"] = Page.PageName + ".cs";
             direc4Page["codeFile"]= Page.PageName+".cs";
             direc4Page["Inherits"]="UCMLCommon."+this.Name;
             direc4Page["AutoEventWireup"]="False";
@@ -535,8 +539,8 @@ namespace UCML.IDE.WebUCML
             initCtr.Content.AppendLine("");
             //实例化业务逻辑类
             initCtr.Content.AppendLine("DataSet ds = null;");
-            initCtr.Content.AppendLine("busiObj = UCMLBusinessObjectFactory.CreateBusinessObject(this.BPOName);");
-            //initCtr.Content.AppendLine("busiObj =new " + this.Name + "Service(true);");
+            if (this.CompileMode) initCtr.Content.AppendLine("busiObj =new " + this.Name + "Service(true);");
+            else initCtr.Content.AppendLine("busiObj = UCMLBusinessObjectFactory.CreateBusinessObject(this.BPOName);");
 
             initCtr.Content.AppendLine("if (fEnableConfig==true)");
             initCtr.Content.AppendLine("{");
@@ -1031,107 +1035,107 @@ namespace UCML.IDE.WebUCML
         public bool BuildBpoHtc()
         {
             //标准方法定义
-            this.bpoHtc.Definition.AppendLine("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">");
-            this.bpoHtc.Definition.AppendLine("<public:component>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"open\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"LoadResults\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"AddUseTable\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"InitBusinessEnv\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"getRootTable\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"getTaskList\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"getServiceHandle\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"ChangeBusiView\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"condiQuery\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"condiQueryEx\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"condiActorQuery\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"ExportToExcel\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"Report_Compute\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"BusinessSubmit\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"FinishTask\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"StartBCLink\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"CallbuildTreeSubNodes\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"getBCList\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"HideSelect\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:method name=\"ShowSelect\"/>");
+            this.BpoHtc.Definition.AppendLine("<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">");
+            this.BpoHtc.Definition.AppendLine("<public:component>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"open\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"LoadResults\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"AddUseTable\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"InitBusinessEnv\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"getRootTable\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"getTaskList\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"getServiceHandle\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"ChangeBusiView\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"condiQuery\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"condiQueryEx\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"condiActorQuery\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"ExportToExcel\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"Report_Compute\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"BusinessSubmit\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"FinishTask\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"StartBCLink\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"CallbuildTreeSubNodes\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"getBCList\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"HideSelect\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:method name=\"ShowSelect\"/>");
             //标准事件定义
-            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnBeforeOpen\" name=\"onbeforeopen\">");
-            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnAfterOpen\" name=\"onafteropen\">");
-            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnBPObjectReady\" name=\"onbpobjectready\">");
-            this.bpoHtc.Definition.AppendLine("<public:event id=\"OnAfterCondiQuery\" name=\"onaftercondiquery\">");
+            this.BpoHtc.Definition.AppendLine("<public:event id=\"OnBeforeOpen\" name=\"onbeforeopen\">");
+            this.BpoHtc.Definition.AppendLine("<public:event id=\"OnAfterOpen\" name=\"onafteropen\">");
+            this.BpoHtc.Definition.AppendLine("<public:event id=\"OnBPObjectReady\" name=\"onbpobjectready\">");
+            this.BpoHtc.Definition.AppendLine("<public:event id=\"OnAfterCondiQuery\" name=\"onaftercondiquery\">");
             //标准属性定义
-            this.bpoHtc.Definition.AppendLine("<public:property name=\"BusiViewModes\" get=\"getBusiViewModes\"/>");
-            this.bpoHtc.Definition.AppendLine("<public:property name=\"BusinessDataPacket\" get=\"getBusinessDataPacket\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:property name=\"BusiViewModes\" get=\"getBusiViewModes\"/>");
+            this.BpoHtc.Definition.AppendLine("<public:property name=\"BusinessDataPacket\" get=\"getBusinessDataPacket\"/>");
             
             //BPOName 相关定义
             foreach (UcmlBusiCompPropSet bc in this.BCList)
             {
-                this.bpoHtc.Definition.AppendLine("<public:property name=\""+bc.Name+"Columns\" get=\"get"+bc.Name+"Columns\"/>");
+                this.BpoHtc.Definition.AppendLine("<public:property name=\""+bc.Name+"Columns\" get=\"get"+bc.Name+"Columns\"/>");
             }
             foreach (UcmlVcTabPage vcTab in this.VcTabList)
             {
                 foreach (UcmlViewCompnent vc in vcTab.VCList)
                 {
-                    this.bpoHtc.Definition.AppendLine("<public:method name=\""+vc.VCName+"ExtMenuClick\"/>");
-                    this.bpoHtc.Definition.AppendLine("<public:property name=\"" + vc.VCName + "Columns\" get=\"get" + vc.VCName + "Columns\"/>");
+                    this.BpoHtc.Definition.AppendLine("<public:method name=\""+vc.VCName+"ExtMenuClick\"/>");
+                    this.BpoHtc.Definition.AppendLine("<public:property name=\"" + vc.VCName + "Columns\" get=\"get" + vc.VCName + "Columns\"/>");
                 }
             }
-            this.bpoHtc.Definition.AppendLine("</public:component>");
+            this.BpoHtc.Definition.AppendLine("</public:component>");
             //变量定义
-            this.bpoHtc.Statement.AppendLine("var __BusiViewModes=null;");
+            this.BpoHtc.Statement.AppendLine("var __BusiViewModes=null;");
             foreach (UcmlBusiCompPropSet bc in this.BCList)
             {
-                this.bpoHtc.Statement.AppendLine("var __" + bc.Name + "Columns;");
+                this.BpoHtc.Statement.AppendLine("var __" + bc.Name + "Columns;");
             }
             foreach (UcmlVcTabPage vcTab in this.VcTabList)
             {
                 foreach (UcmlViewCompnent vc in vcTab.VCList)
                 {
-                    this.bpoHtc.Statement.AppendLine("var __" + vc.VCName + "Columns;");
+                    this.BpoHtc.Statement.AppendLine("var __" + vc.VCName + "Columns;");
                 }
             }
-            this.bpoHtc.Statement.AppendLine("var objColumn;");
-            this.bpoHtc.Statement.AppendLine("var TaskList = new Array();");
-            this.bpoHtc.Statement.AppendLine("var iCallID=0;");
-            this.bpoHtc.Statement.AppendLine("var iApplyCallID=-1;");
-            this.bpoHtc.Statement.AppendLine("var theBPOName=\"" + this.Name + "\";");
-            this.bpoHtc.Statement.AppendLine("var BusinessID=0;");
-            this.bpoHtc.Statement.AppendLine("var ServiceHandle=null;");
-            this.bpoHtc.Statement.AppendLine("var UseTableList = new Array();");
-            this.bpoHtc.Statement.AppendLine("var theDataPacket ;");
-            this.bpoHtc.Statement.AppendLine("var iSingleCallID=9;");
-            this.bpoHtc.Statement.AppendLine("var theSingleTable=null;");
-            this.bpoHtc.Statement.AppendLine("var fPromptSubmit=true;");
-            this.bpoHtc.Statement.AppendLine("var theDeltaData=createXMLObject();");
-            this.bpoHtc.Statement.AppendLine("theDeltaData.loadXML(\"<root/>\");");
-            this.bpoHtc.Statement.AppendLine("var COMMAND=\"\";");
-            this.bpoHtc.Statement.AppendLine("var OwnerFlow=\"\";");
-            this.bpoHtc.Statement.AppendLine("var  objChangeBusiView = new ChangeBusiViewObj();");
-            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objChangeBusiView;");
-            this.bpoHtc.Statement.AppendLine("var  objcondiQuery = new condiQueryObj();");
-            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objcondiQuery;");
-            this.bpoHtc.Statement.AppendLine("ObjectgetTotalDataTask = new DoResultgetTotalData();");
-            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = ObjectgetTotalDataTask;");
+            this.BpoHtc.Statement.AppendLine("var objColumn;");
+            this.BpoHtc.Statement.AppendLine("var TaskList = new Array();");
+            this.BpoHtc.Statement.AppendLine("var iCallID=0;");
+            this.BpoHtc.Statement.AppendLine("var iApplyCallID=-1;");
+            this.BpoHtc.Statement.AppendLine("var theBPOName=\"" + this.Name + "\";");
+            this.BpoHtc.Statement.AppendLine("var BusinessID=0;");
+            this.BpoHtc.Statement.AppendLine("var ServiceHandle=null;");
+            this.BpoHtc.Statement.AppendLine("var UseTableList = new Array();");
+            this.BpoHtc.Statement.AppendLine("var theDataPacket ;");
+            this.BpoHtc.Statement.AppendLine("var iSingleCallID=9;");
+            this.BpoHtc.Statement.AppendLine("var theSingleTable=null;");
+            this.BpoHtc.Statement.AppendLine("var fPromptSubmit=true;");
+            this.BpoHtc.Statement.AppendLine("var theDeltaData=createXMLObject();");
+            this.BpoHtc.Statement.AppendLine("theDeltaData.loadXML(\"<root/>\");");
+            this.BpoHtc.Statement.AppendLine("var COMMAND=\"\";");
+            this.BpoHtc.Statement.AppendLine("var OwnerFlow=\"\";");
+            this.BpoHtc.Statement.AppendLine("var  objChangeBusiView = new ChangeBusiViewObj();");
+            this.BpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objChangeBusiView;");
+            this.BpoHtc.Statement.AppendLine("var  objcondiQuery = new condiQueryObj();");
+            this.BpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objcondiQuery;");
+            this.BpoHtc.Statement.AppendLine("ObjectgetTotalDataTask = new DoResultgetTotalData();");
+            this.BpoHtc.Statement.AppendLine("TaskList[TaskList.length] = ObjectgetTotalDataTask;");
 
-            this.bpoHtc.Statement.AppendLine("var TotalTextBoxIndex=0;");
-            this.bpoHtc.Statement.AppendLine("var TotalVCName=\"\";");
+            this.BpoHtc.Statement.AppendLine("var TotalTextBoxIndex=0;");
+            this.BpoHtc.Statement.AppendLine("var TotalVCName=\"\";");
 
-            this.bpoHtc.Statement.AppendLine("ObjectputTOExcelTask = new DoResultputTOExcel();");
-            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = ObjectputTOExcelTask;");
+            this.BpoHtc.Statement.AppendLine("ObjectputTOExcelTask = new DoResultputTOExcel();");
+            this.BpoHtc.Statement.AppendLine("TaskList[TaskList.length] = ObjectputTOExcelTask;");
 
-            this.bpoHtc.Statement.AppendLine("var  objcondiQueryEx = new condiQueryExObj();");
-            this.bpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objcondiQueryEx;");
+            this.BpoHtc.Statement.AppendLine("var  objcondiQueryEx = new condiQueryExObj();");
+            this.BpoHtc.Statement.AppendLine("TaskList[TaskList.length] = objcondiQueryEx;");
 
-            this.bpoHtc.Statement.AppendLine("var flowTask=false;");
+            this.BpoHtc.Statement.AppendLine("var flowTask=false;");
 
-            this.bpoHtc.Statement.AppendLine("var  localxml = createXMLObject();");
+            this.BpoHtc.Statement.AppendLine("var  localxml = createXMLObject();");
 
-            this.bpoHtc.Statement.AppendLine("var theCurrentBCLink=null;");
-            this.bpoHtc.Statement.AppendLine("var BCLinkWin=null;");
+            this.BpoHtc.Statement.AppendLine("var theCurrentBCLink=null;");
+            this.BpoHtc.Statement.AppendLine("var BCLinkWin=null;");
 
-            this.bpoHtc.Statement.AppendLine("");
-            this.bpoHtc.Statement.AppendLine("");
+            this.BpoHtc.Statement.AppendLine("");
+            this.BpoHtc.Statement.AppendLine("");
 
-            this.bpoHtc.Statement.AppendLine("");
+            this.BpoHtc.Statement.AppendLine("");
             //函数定义
             //BPO相关函数
 
@@ -1143,11 +1147,11 @@ namespace UCML.IDE.WebUCML
             {
                 JsFunction bcColumn = new JsFunction("get"+bc.Name+"Columns");
                 bcColumn.Content.AppendLine("return __"+bc.Name+"Columns;");
-                bpoHtc.FuncList.Add(bcColumn);
+                BpoHtc.FuncList.Add(bcColumn);
 
                 //OnFieldChange
                 JsFunction OnFieldChange = new JsFunction(bc.Name + "OnFieldChange");
-                bpoHtc.FuncList.Add(OnFieldChange);
+                BpoHtc.FuncList.Add(OnFieldChange);
 
                 //Prepare BC Column
                 string bcCol = "__" + bc.Name + "Columns";
@@ -1199,16 +1203,16 @@ namespace UCML.IDE.WebUCML
                 {
                     JsFunction vcColumn = new JsFunction("get"+vc.VCName+"Columns");
                     vcColumn.Content.Append("return __"+vc.VCName+"Columns");
-                    bpoHtc.FuncList.Add(vcColumn);
+                    BpoHtc.FuncList.Add(vcColumn);
 
                     //ExtMenuClick
                     JsFunction ExtMenuClick = new JsFunction(vc.VCName + "ExtMenuClick");
                     ExtMenuClick.Params.Add("cmd");
-                    bpoHtc.FuncList.Add(ExtMenuClick);
+                    BpoHtc.FuncList.Add(ExtMenuClick);
 
                     //menuready
                     JsFunction menuready = new JsFunction(vc.VCName + "menuready");
-                    bpoHtc.FuncList.Add(menuready);
+                    BpoHtc.FuncList.Add(menuready);
 
                     //Prepare for VC Column
                     string vcCol = "__" + vc.VCName + "Columns";
@@ -1236,20 +1240,20 @@ namespace UCML.IDE.WebUCML
                 }
             }
             //添加PrepareColumn
-            bpoHtc.FuncList.Add(PrepareColumn);
+            BpoHtc.FuncList.Add(PrepareColumn);
 
             //BusinessInit
             JsFunction BusinessInit = new JsFunction("BusinessInit");
-            bpoHtc.FuncList.Add(BusinessInit);
+            BpoHtc.FuncList.Add(BusinessInit);
 
             //BeforeSubmit
             JsFunction BeforeSubmit = new JsFunction("BeforeSubmit");
             BeforeSubmit.Content.AppendLine("return true;");
-            bpoHtc.FuncList.Add(BeforeSubmit);
+            BpoHtc.FuncList.Add(BeforeSubmit);
 
             //AfterSubmit
             JsFunction AfterSubmit = new JsFunction("AfterSubmit");
-            bpoHtc.FuncList.Add(AfterSubmit);
+            BpoHtc.FuncList.Add(AfterSubmit);
 
             //CanSubmit
             JsFunction CanSubmit = new JsFunction("CanSubmit");
@@ -1260,7 +1264,7 @@ namespace UCML.IDE.WebUCML
             CanSubmit.Content.AppendLine("   if (result==false) break;");
             CanSubmit.Content.AppendLine("}");
             CanSubmit.Content.AppendLine("return result");
-            bpoHtc.FuncList.Add(CanSubmit);
+            BpoHtc.FuncList.Add(CanSubmit);
 
             //BusinessSubmit
             JsFunction BusinessSubmit = new JsFunction("BusinessSubmit");
@@ -1278,17 +1282,17 @@ namespace UCML.IDE.WebUCML
             BusinessSubmit.Content.AppendLine("   var srv=eval(\"ServiceHandle.\"+theBPOName+\"Service\");");
             BusinessSubmit.Content.AppendLine("   this.iApplyCallID=srv.callService(\"BusinessSubmit\",\"<![CDATA[\" + theDeltaData.documentElement.xml + \"]]>\");");
             BusinessSubmit.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(BusinessSubmit);
+            BpoHtc.FuncList.Add(BusinessSubmit);
 
             //getBusiViewModes
             JsFunction getbusiView = new JsFunction("getBusiViewModes");
             getbusiView.Content.Append("return __BusiViewModes;");
-            bpoHtc.FuncList.Add(getbusiView);
+            BpoHtc.FuncList.Add(getbusiView);
 
             //getTaskList
             JsFunction getTaskList = new JsFunction("getTaskList");
             getTaskList.Content.Append("return TaskList;");
-            bpoHtc.FuncList.Add(getTaskList);
+            BpoHtc.FuncList.Add(getTaskList);
 
             //open函数
             JsFunction open = new JsFunction("open");
@@ -1300,7 +1304,7 @@ namespace UCML.IDE.WebUCML
             open.Content.AppendLine("PrepareColumn();");
             open.Content.AppendLine("var evObj = createEventObject();");
             open.Content.Append("OnAfterOpen.fire(evObj);");
-            bpoHtc.FuncList.Add(open);
+            BpoHtc.FuncList.Add(open);
             
             //HideSelect
             JsFunction hideSelect = new JsFunction("HideSelect");
@@ -1308,7 +1312,7 @@ namespace UCML.IDE.WebUCML
             hideSelect.Content.AppendLine("{");
             hideSelect.Content.AppendLine("    UseTableList[i].NotifyControls(\"HideSelect\");");
             hideSelect.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(hideSelect);
+            BpoHtc.FuncList.Add(hideSelect);
             
             //ShowSelect
             JsFunction showSelect = new JsFunction("ShowSelect");
@@ -1316,14 +1320,14 @@ namespace UCML.IDE.WebUCML
             showSelect.Content.AppendLine("{");
             showSelect.Content.AppendLine("UseTableList[i].NotifyControls(\"ShowSelect\");");
             showSelect.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(showSelect);
+            BpoHtc.FuncList.Add(showSelect);
 
             //AddUseTable
             JsFunction addUseTable = new JsFunction("AddUseTable");
             addUseTable.Params.Add("DataTable");
             addUseTable.Content.AppendLine("UseTableList[UseTableList.length]=DataTable;");
             addUseTable.Content.AppendLine("DataTable.DeltaData = theDeltaData;");
-            bpoHtc.FuncList.Add(addUseTable);
+            BpoHtc.FuncList.Add(addUseTable);
 
             //NotifyTable
             JsFunction notifyTable = new JsFunction("NotifyTable");
@@ -1336,7 +1340,7 @@ namespace UCML.IDE.WebUCML
             notifyTable.Content.AppendLine("{");
             notifyTable.Content.AppendLine("    UseTableList[i].SetControlDataPacket(xmldoc);");
             notifyTable.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(notifyTable);
+            BpoHtc.FuncList.Add(notifyTable);
 
             //NotifyTable
             JsFunction notifyTableNoneActor = new JsFunction("NotifyTableNoneActor");
@@ -1351,12 +1355,12 @@ namespace UCML.IDE.WebUCML
             notifyTableNoneActor.Content.AppendLine("    if (UseTableList[i].TableType!=\"A\")");
             notifyTableNoneActor.Content.AppendLine("        UseTableList[i].SetControlDataPacket(xmldoc);");
             notifyTableNoneActor.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(notifyTableNoneActor);
+            BpoHtc.FuncList.Add(notifyTableNoneActor);
 
             //getRootTable
             JsFunction getRootTable = new JsFunction("getRootTable");
             getRootTable.Content.AppendLine("return UseTableList[0];");
-            bpoHtc.FuncList.Add(getRootTable);
+            BpoHtc.FuncList.Add(getRootTable);
 
             //
             JsFunction InitBusinessEnv = new JsFunction("InitBusinessEnv");
@@ -1380,13 +1384,13 @@ namespace UCML.IDE.WebUCML
             InitBusinessEnv.Content.AppendLine("var evObj = createEventObject();");
             InitBusinessEnv.Content.AppendLine("OnBPObjectReady.fire(evObj);");
             InitBusinessEnv.Content.AppendLine("return;");
-            bpoHtc.FuncList.Add(InitBusinessEnv);
+            BpoHtc.FuncList.Add(InitBusinessEnv);
 
             //getServiceHandle
             JsFunction getServiceHandle = new JsFunction("getServiceHandle");
             getServiceHandle.Content.AppendLine("ServiceHandle = eval(ServiceID);");
             getServiceHandle.Content.AppendLine("return ServiceHandle;");
-            bpoHtc.FuncList.Add(getServiceHandle);
+            BpoHtc.FuncList.Add(getServiceHandle);
 
             //ChangeBusiViewObj
             JsFunction ChangeBusiViewObj = new JsFunction("ChangeBusiViewObj");
@@ -1412,7 +1416,7 @@ namespace UCML.IDE.WebUCML
             ChangeBusiViewObj.Content.AppendLine("        NotifyTable(pk);");
             ChangeBusiViewObj.Content.AppendLine("    }");
             ChangeBusiViewObj.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(ChangeBusiViewObj);
+            BpoHtc.FuncList.Add(ChangeBusiViewObj);
 
             //ChangeBusiView
             JsFunction ChangeBusiView = new JsFunction("ChangeBusiView");
@@ -1423,7 +1427,7 @@ namespace UCML.IDE.WebUCML
             ChangeBusiView.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
             ChangeBusiView.Content.AppendLine("    eval(\"objChangeBusiView.CallID =ServiceHandle.\"+theBPOName+\"Service.callService(\\\"ChangeBusiView\\\",viewType)\");");
             ChangeBusiView.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(ChangeBusiView);
+            BpoHtc.FuncList.Add(ChangeBusiView);
 
             //condiQueryObj
             JsFunction condiQueryObj = new JsFunction("condiQueryObj");
@@ -1450,7 +1454,7 @@ namespace UCML.IDE.WebUCML
             condiQueryObj.Content.AppendLine("    var evObj = createEventObject();");
             condiQueryObj.Content.AppendLine("    OnAfterCondiQuery.fire(evObj);");
             condiQueryObj.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(condiQueryObj);
+            BpoHtc.FuncList.Add(condiQueryObj);
 
             //getTotalData
             JsFunction getTotalData = new JsFunction("getTotalData");
@@ -1472,7 +1476,7 @@ namespace UCML.IDE.WebUCML
             getTotalData.Content.AppendLine("    var srv=eval(\"ServiceHandle.\"+theBPOName+\"Service\");");
             getTotalData.Content.AppendLine("    ObjectgetTotalDataTask.CallID=srv.callService(\"getTotalData\",BCName,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,SQLFix,TotalFields,TotalModes);");
             getTotalData.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(getTotalData);
+            BpoHtc.FuncList.Add(getTotalData);
 
             //DoResultgetTotalData
             JsFunction DoResultgetTotalData = new JsFunction("DoResultgetTotalData");
@@ -1485,7 +1489,7 @@ namespace UCML.IDE.WebUCML
             DoResultgetTotalData.Content.AppendLine("        obj.setAttribute(\"Value\",values);");
             DoResultgetTotalData.Content.AppendLine("    }");
             DoResultgetTotalData.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(DoResultgetTotalData);
+            BpoHtc.FuncList.Add(DoResultgetTotalData);
 
             //ExportToExcel
             JsFunction ExportToExcel = new JsFunction("ExportToExcel");
@@ -1511,7 +1515,7 @@ namespace UCML.IDE.WebUCML
             ExportToExcel.Content.AppendLine("    var srv=eval(\"ServiceHandle.\"+theBPOName+\"Service\");");
             ExportToExcel.Content.AppendLine("    ObjectputTOExcelTask.CallID=srv.callService(\"PutToExcelEX\",BCName,nFieldLists,0,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,\"\",UCMLLocalResourcePath,VCObject.id,MergerFieldIndex, TitleTextLists);");
             ExportToExcel.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(ExportToExcel);
+            BpoHtc.FuncList.Add(ExportToExcel);
 
             //DoResultputTOExcel
             JsFunction DoResultputTOExcel = new JsFunction("DoResultputTOExcel");
@@ -1531,7 +1535,7 @@ namespace UCML.IDE.WebUCML
             DoResultputTOExcel.Content.AppendLine("        }");
             DoResultputTOExcel.Content.AppendLine("    }");
             DoResultputTOExcel.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(DoResultputTOExcel);
+            BpoHtc.FuncList.Add(DoResultputTOExcel);
 
             //condiQuery
             JsFunction condiQuery = new JsFunction("condiQuery");
@@ -1561,7 +1565,7 @@ namespace UCML.IDE.WebUCML
             condiQuery.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
             condiQuery.Content.AppendLine("    eval(\"objcondiQuery.CallID =ServiceHandle.\"+theBPOName+\"Service.callService('getCondiBusinessData',0,nPageCount,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType)\");");
             condiQuery.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(condiQuery);
+            BpoHtc.FuncList.Add(condiQuery);
 
             //condiQueryExObj
             JsFunction condiQueryExObj = new JsFunction("condiQueryExObj");
@@ -1590,7 +1594,7 @@ namespace UCML.IDE.WebUCML
             condiQueryExObj.Content.AppendLine("}");
             condiQueryExObj.Content.AppendLine("");
             condiQueryExObj.Content.AppendLine("");
-            bpoHtc.FuncList.Add(condiQueryExObj);
+            BpoHtc.FuncList.Add(condiQueryExObj);
 
             //condiQueryEx
             JsFunction condiQueryEx = new JsFunction("condiQueryEx");
@@ -1615,7 +1619,7 @@ namespace UCML.IDE.WebUCML
             condiQueryEx.Content.AppendLine("    ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
             condiQueryEx.Content.AppendLine("    eval(\"objcondiQueryEx.CallID =ServiceHandle.\"+theBPOName+\"Service.callService('getCondiBusinessDataEx',0,10,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType,'',SubBC_SQLCondi)\");");
             condiQueryEx.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(condiQueryEx);
+            BpoHtc.FuncList.Add(condiQueryEx);
 
             //condiActorQuery
             JsFunction condiActorQuery = new JsFunction("condiActorQuery");
@@ -1648,16 +1652,16 @@ namespace UCML.IDE.WebUCML
             condiActorQuery.Content.AppendLine("   ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
             condiActorQuery.Content.AppendLine("   eval(\"this.iSingleCallID =ServiceHandle.\"+theBPOName+\"Service.callService('getCondiActorData',TableName,0,10,fieldList,valueList,condiIndentList,SQLCondi,SQLCondiType)\");");
             condiActorQuery.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(condiActorQuery);
+            BpoHtc.FuncList.Add(condiActorQuery);
 
             //Report_Compute
             JsFunction Report_Compute = new JsFunction("Report_Compute");
-            bpoHtc.FuncList.Add(Report_Compute);
+            BpoHtc.FuncList.Add(Report_Compute);
 
             //getBCList
             JsFunction getBCList = new JsFunction("getBCList");
             getBCList.Content.AppendLine("return UseTableList;");
-            bpoHtc.FuncList.Add(getBCList);
+            BpoHtc.FuncList.Add(getBCList);
 
             //FinishTask
             JsFunction FinishTask = new JsFunction("FinishTask");
@@ -1667,7 +1671,7 @@ namespace UCML.IDE.WebUCML
             FinishTask.Content.AppendLine("   ServiceHandle.useService(theBPOName+\".asmx?WSDL\",theBPOName+\"Service\");");
             FinishTask.Content.AppendLine("   eval(\"this.iApplyCallID =ServiceHandle.\"+theBPOName+\"Service.callService(\\\"FinishTask\\\",(TaskID))\");");
             FinishTask.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(FinishTask);
+            BpoHtc.FuncList.Add(FinishTask);
 
             //LoadResults
             JsFunction LoadResults = new JsFunction("LoadResults");
@@ -1745,12 +1749,12 @@ namespace UCML.IDE.WebUCML
             LoadResults.Content.AppendLine("      return;");
             LoadResults.Content.AppendLine("   }");
             LoadResults.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(LoadResults);
+            BpoHtc.FuncList.Add(LoadResults);
 
             //getBusinessDataPacket
             JsFunction getBusinessDataPacket = new JsFunction("getBusinessDataPacket");
             getBusinessDataPacket.Content.AppendLine("return theDataPacket;");
-            bpoHtc.FuncList.Add(getBusinessDataPacket);
+            BpoHtc.FuncList.Add(getBusinessDataPacket);
 
             //MergeChange
             JsFunction MergeChange = new JsFunction("MergeChange");
@@ -1760,7 +1764,7 @@ namespace UCML.IDE.WebUCML
             MergeChange.Content.AppendLine("   var node = theDeltaData.documentElement.childNodes[0];");
             MergeChange.Content.AppendLine("   theDeltaData.documentElement.removeChild(node);");
             MergeChange.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(MergeChange);
+            BpoHtc.FuncList.Add(MergeChange);
 
             //DeltaUpdate
             JsFunction DeltaUpdate = new JsFunction("DeltaUpdate");
@@ -1826,7 +1830,7 @@ namespace UCML.IDE.WebUCML
             getResourceData.Content.AppendLine("var Node = theDataPacket.selectSingleNode(\"//ResourceData[KeyName='\"+keyName+\"']\");");
             getResourceData.Content.AppendLine("if (Node!=null) return Node.childNodes[1].text;");
             getResourceData.Content.AppendLine("else return \"\";");
-            bpoHtc.FuncList.Add(getResourceData);
+            BpoHtc.FuncList.Add(getResourceData);
 
             //CallbuildTreeSubNodes
             JsFunction CallbuildTreeSubNodes = new JsFunction("CallbuildTreeSubNodes");
@@ -1872,7 +1876,7 @@ namespace UCML.IDE.WebUCML
             CallbuildTreeSubNodes.Content.AppendLine("   node.setAttribute(\"TreeNodeSrc\",s[0]);");
             CallbuildTreeSubNodes.Content.AppendLine("}");
             
-            bpoHtc.FuncList.Add(CallbuildTreeSubNodes);
+            BpoHtc.FuncList.Add(CallbuildTreeSubNodes);
 
             //StartBCLink
             JsFunction StartBCLink = new JsFunction("StartBCLink");
@@ -1910,7 +1914,7 @@ namespace UCML.IDE.WebUCML
             StartBCLink.Content.AppendLine("   window.open(eval(BCLink.urlFuncName+\"(BCLink)\"),\"\",\"location=no,menubar=yes,toolbar=no,status=no,directories=no,scrollbars=yes,resizable=yes\");");
             StartBCLink.Content.AppendLine("}");
 
-            bpoHtc.FuncList.Add(StartBCLink);
+            BpoHtc.FuncList.Add(StartBCLink);
 
             //OnBCReady
             JsFunction OnBCReady = new JsFunction("OnBCReady");
@@ -1922,7 +1926,7 @@ namespace UCML.IDE.WebUCML
             OnBCReady.Content.AppendLine("bcObject.destFieldName = theCurrentBCLink.destFieldName;");
             OnBCReady.Content.AppendLine("bcObject.InitApplet(theCurrentBCLink);");
 
-            bpoHtc.FuncList.Add(OnBCReady);
+            BpoHtc.FuncList.Add(OnBCReady);
 
             //onpopupclose
             JsFunction onpopupclose = new JsFunction("onpopupclose");
@@ -1930,7 +1934,7 @@ namespace UCML.IDE.WebUCML
             onpopupclose.Content.AppendLine("{");
             onpopupclose.Content.AppendLine("   UseTableList[i].NotifyControls(\"ShowSelect\");");
             onpopupclose.Content.AppendLine("}");
-            bpoHtc.FuncList.Add(onpopupclose);
+            BpoHtc.FuncList.Add(onpopupclose);
 
 
 
@@ -1958,7 +1962,7 @@ namespace UCML.IDE.WebUCML
             getURLParameters.Content.AppendLine("}");
             getURLParameters.Content.AppendLine("return null;");
             
-            bpoHtc.FuncList.Add(getURLParameters);
+            BpoHtc.FuncList.Add(getURLParameters);
 
             //createXMLObject
             JsFunction createXMLObject = new JsFunction("createXMLObject");
@@ -1982,23 +1986,32 @@ namespace UCML.IDE.WebUCML
             createXMLObject.Content.AppendLine("   }");
             createXMLObject.Content.AppendLine("}");
             
-            bpoHtc.FuncList.Add(createXMLObject);
+            BpoHtc.FuncList.Add(createXMLObject);
 
             //ShowMessage
             JsFunction ShowMessage = new JsFunction("ShowMessage");
             ShowMessage.Params.Add("str");
             ShowMessage.Content.AppendLine("MsgPanel.style.visibility=\"visible\";");
             ShowMessage.Content.AppendLine("MsgPanel.innerHTML=str;");
-            bpoHtc.FuncList.Add(ShowMessage);
+            BpoHtc.FuncList.Add(ShowMessage);
 
             //HideMessage
             JsFunction HideMessage = new JsFunction("HideMessage");
             HideMessage.Content.AppendLine("MsgPanel.style.visibility=\"hidden\";");
-            bpoHtc.FuncList.Add(HideMessage);
+            BpoHtc.FuncList.Add(HideMessage);
 
 
             //装备完毕
 
+            return true;
+        }
+
+        /// <summary>
+        /// 装配TableName.htc脚本文件
+        /// </summary>
+        /// <returns></returns>
+        public bool BuildTableHtc()
+        {
             return true;
         }
 
@@ -2035,7 +2048,7 @@ namespace UCML.IDE.WebUCML
         }
         public bool SaveHtc()
         {
-            return this.bpoHtc.Save(this.SavePath);
+            return this.BpoHtc.Save(this.SavePath);
         }
 
         public void SetVCPostion()

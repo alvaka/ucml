@@ -13,16 +13,17 @@ namespace UCML.IDE.WebUCML
     {
         static void Main(string[] args)
         {
-            string connStr = Util.GetDBConnecString("(local)", "UcmlStudy", "sa", "goodluck");
+            string connStr = Util.GetDBConnecString("(local)", "UCMLWEBIDEX", "sa", "goodluck");
             SqlConnection conn = new SqlConnection(connStr);
             conn.Open();
             int bpoid = 14356;
+            //int bpoid = 14357;
             BpoPropertySet bps = PrepareBPS(conn, bpoid);
             UcmlBPO ubpo = new UcmlBPO(bps, "UCMLCommon");
-            ubpo.CompileMode = true;
-            //ubpo.SavePath = @"E:\workspace\goldframe\web_platform\UCMLWebDev\BPObject";
-            //ubpo.SavePath = @"E:\tmp\";
-            ubpo.SavePath = @"G:\Workspace\ucml\platform\study\UcmlClass1\BPObject";
+            ubpo.CompileMode = false;
+            ubpo.SavePath = @"E:\workspace\goldframe\web_platform\UCMLWebDev\BPObject";
+            //ubpo.SavePath = @"E:\workspace\tmp";
+            //ubpo.SavePath = @"G:\Workspace\ucml\platform\study\UcmlClass1\BPObject";
             ubpo.VcTabList = PrepareVcTab(conn, bpoid);
             ubpo.BCList = PrepareBC(conn, bpoid);
             ubpo.SetVCPostion();
@@ -92,7 +93,8 @@ namespace UCML.IDE.WebUCML
             List<UcmlViewCompnent> vcList = new List<UcmlViewCompnent>();
 
             //构造SQL函数，获取BPO下的所有VC
-            StringBuilder sql = new StringBuilder("select a.AppletOID,a.ParentOID,b.AppletName,b.Caption,b.fTreeGridMode,b.fSubTableTreeMode,b.ImageLink,b.SubBCs,b.SubParentFields,b.SubPicFields,b.SubLabelFields,b.SubFKFields,b.TargetHTMLSource ,b.AllowEdit,a.fHidden,b.UserDesignWebPage,a.alignHeight,a.alignWidth,c.BCName,a.AppletOID,b.AllowAddNew ");
+            StringBuilder sql = new StringBuilder("select a.AppletOID,a.ParentOID,b.AppletName,b.Caption,b.fTreeGridMode,b.fSubTableTreeMode,b.ImageLink,b.SubBCs,b.SubParentFields,b.SubPicFields,b.SubLabelFields,b.SubFKFields,b.TargetHTMLSource ,b.AllowEdit,a.fHidden,b.UserDesignWebPage,a.alignHeight,a.alignWidth,c.BCName,a.AppletOID,b.AllowAddNew");
+            sql.Append(",b.AppletKind ");
             sql.Append("from BusiViewCompLinkDataSet as a,AppletDataSet as b,BusinessTableDataSet as c ");
             sql.Append("where a.AppletOID=b.AppletOID and c.BusinessTableOID=b.BusinessTableOID and a.UCMLClassOID=" + bpoid);
             
@@ -123,33 +125,43 @@ namespace UCML.IDE.WebUCML
                 vc.BCName = Util.GetPropString(reader, 18);
                 vc.OID = Util.GetProperInt(reader, 19);
                 vc.haveMenu = Util.GetPropBool(reader, 20);
-
+                vc.Kind = Util.GetProperInt(reader, 21);
                 vcList.Add(vc);
             }
             //关闭SqlDataReader
             reader.Close();
-
-            //将有父子层关系的放入一个VCTab里
+           
             foreach (UcmlViewCompnent vc in vcList)
             {
                 //加载列信息
                 vc.Columns = PrepareVcColumn(conn, vc.OID);
-
-                //根据主VC生成VCTab
-                if (vc.LinkPOID == 0) 
-                {
-                    UcmlVcTabPage vcTab=vcTab = new UcmlVcTabPage();
-                    vcTab.Name=vc.VCName;
-                    vcTab.Caption=vc.Caption;
-                    vcTab.VCList.Add(vc);
-                    int oid = vc.LinkOID;
-                    foreach (UcmlViewCompnent subVc in vcList)
-                    {
-                        if (subVc.LinkPOID == oid) vcTab.VCList.Add(subVc);
-                    }
-                    tabList.Add(vcTab);
-                }
             }
+            //将VC按照POID分类在不同的VCTab中
+            List<int> OIDList = new List<int>();
+            int tmpOID = -1;
+            for (int i = 0; i < vcList.Count;i++ )
+            {
+                if(OIDList.Contains(vcList[i].LinkPOID))continue;
+                tmpOID = vcList[i].LinkPOID;
+                UcmlVcTabPage vcTab = new UcmlVcTabPage();
+                vcTab.Name = vcList[i].VCName;
+                vcTab.Caption = vcList[i].Caption;
+                vcTab.ParentOID = vcList[i].LinkPOID;
+                vcTab.VCList.Add(vcList[i]);
+
+                for (int j=i+1; j<vcList.Count;j++)
+                {
+                    if (vcList[j].LinkPOID == tmpOID)
+                    {
+                        vcTab.VCList.Add(vcList[j]);
+                        vcList.Remove(vcList[j]);
+                    }
+                }
+                OIDList.Add(tmpOID);
+                tabList.Add(vcTab);
+
+            }
+
             return tabList;
         }
 

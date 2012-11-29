@@ -38,7 +38,7 @@ namespace UCML.IDE.WebUCML
         public bool   fCanModify = false; 
         public int    Pos = 0;
         public int    Width = 0;
-        public int    FieldType = 0;
+        private int    _FieldType = 0;
         public int    StatMode = 0;
         public int    SortMode = 0;
         public bool   fGroupBy = false; 
@@ -64,5 +64,39 @@ namespace UCML.IDE.WebUCML
         public string MultiValueTable;
         public bool fFunctionInitValue;
         public string InitValueFunc;
+
+        public int FieldType
+        {
+            get { return _FieldType; }
+            set 
+            {
+                _FieldType = value;
+                switch (value)
+                {
+                    case 0: EditType = "INPUT"; break;
+                    case 2: EditType = "INPUT"; break;
+                    case 4: EditType = "INPUT"; break;
+                    case 6: EditType = "TEXTAREA"; break;
+                    case 8: EditType = "INPUT"; break;
+                    case 10: EditType = "INPUT"; break;
+                    case 11: EditType = "INPUT"; break;
+                    case 12: EditType = "INPUT"; break;
+                    case 13: EditType = "INPUT"; break;
+                    case 14: EditType = "INPUT"; break;
+                    case 15: EditType = "INPUT"; break;
+                    case 17: EditType = "INPUT"; break;
+                    case 20: EditType = "CHECKBOX"; break;
+                    case 31: EditType = "INPUT"; break;
+                    case 32: EditType = "INPUT"; break;
+                    case 33: EditType = "INPUT"; break;
+                    case 40: EditType = "IMG"; break;
+                    case 41: EditType = "WORD"; break;
+                    case 42: EditType = "EXCEL"; break;
+                    case 43: EditType = "HTML"; break;
+                    case 45: EditType = "INPUT"; break;
+                    case 46: EditType = "INPUT"; break;
+                }
+            }
+        }
     }
 }

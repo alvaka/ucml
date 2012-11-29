@@ -148,8 +148,9 @@ namespace UCML.IDE.WebUCML
             {
                 foreach (UcmlViewCompnent vc in vcTab.VCList)
                 {
-                    init.Content.AppendLine(vc.BCName+"Base.AddConnectControls("+vc.VCName+");");
                     init.Content.AppendLine(vc.VCName + ".UserDefineHTML=\"" + vc.UserDefineHTML.ToString().ToLower() + "\";");
+                    init.Content.AppendLine(vc.BCName+"Base.AddConnectControls("+vc.VCName+");");
+                    
                     init.Content.AppendLine(vc.VCName+".BPOName=\""+this.Name+"\";");
                     init.Content.AppendLine(vc.VCName+".AppletName=\""+vc.VCName+"\";");
                     init.Content.AppendLine(vc.VCName + ".EnabledEdit=" + vc.EnabledEdit.ToString().ToLower() + ";");
@@ -187,7 +188,7 @@ namespace UCML.IDE.WebUCML
             {
                 //TabStrip控件
                 AspxNode tabStrip = new AspxNode("iewc:TabStrip");
-                tabStrip["id"] = "TabStrip_"+vcTab.Name;
+                tabStrip["id"] = "TabStrip_" + vcTab.Name;
                 tabStrip["TargetID"] = "MultiPage_" + vcTab.Name;
                 tabStrip["CssClass"] = "UCML-TAB";
                 tabStrip["TabSelectedStyle"] = "border-right:#aca899 1px solid;border-top:white 1px solid;background:#ece9d8;border-left:white 1px solid;color:#0;border-bottom:#aca899 1px solid;";
@@ -201,7 +202,7 @@ namespace UCML.IDE.WebUCML
                 tabStrip["EnableViewState"] = "False";
                 //MultiPage控件
                 AspxNode multiPage = new AspxNode("iewc:MultiPage");
-                multiPage["id"] = "MultiPage_"+vcTab.Name;
+                multiPage["id"] = "MultiPage_" + vcTab.Name;
                 multiPage["width"] = "100%";//待改成变量
 
                 //把TabStrip控件和MultiPage控件挂到MainPanelNode下
@@ -212,7 +213,7 @@ namespace UCML.IDE.WebUCML
                 {
                     //添加Tab控件
                     AspxNode tab = new AspxNode("iewc:Tab");
-                    tab["id"] = "Tab_"+vc.VCName;
+                    tab["id"] = "Tab_" + vc.VCName;
                     tab["Text"] = vc.Caption;
                     //添加TabSeperator控件
                     HtmlNode tabSep = HtmlNode.CreateClosedNode("iewc:TabSeparator");
@@ -222,11 +223,11 @@ namespace UCML.IDE.WebUCML
 
                     //添加PageView控件
                     AspxNode pageView = new AspxNode("iewc:PageView");
-                    pageView["id"] = "PageView_"+vc.VCName;
+                    pageView["id"] = "PageView_" + vc.VCName;
                     pageView["Text"] = vc.Caption;
                     //添加Panel控件
                     AspxNode panel = new AspxNode("asp:Panel");
-                    panel["id"] = vc.VCName+"_Module";
+                    panel["id"] = vc.VCName + "_Module";
                     panel["style"] = "overflow:hidden";
                     panel["CssClass"] = "UCML-Panel";
                     panel["width"] = "100%";//待改成变量
@@ -237,21 +238,36 @@ namespace UCML.IDE.WebUCML
                     //添加ToolBar
                     //添加ToolButton
                     //挂载VC到panel下
-                    if (vc.VCNode.Childs[0].OnlyText) vc.VCNode.Childs.Clear();
-                    panel.Append(vc.VCNode);
-                    //添加VCName Div
-                    HtmlNode div = new HtmlNode("div");
-                    div["id"] = vc.VCName;
-                    div["style"] = "BEHAVIOR:url(UCMLDBGrid.htc);width:100%;height:200";
-                    div["title"] = vc.Caption;
-                    panel.Append(div);
-                    //添加ContextMenu
+                    if (vc.VCNode.Childs.Count == 1 && vc.VCNode.Childs[0].OnlyText) vc.VCNode.Childs.Clear();
+                    //构造ContextMenu
                     HtmlNode span = new HtmlNode("span");
-                    span["id"] = "theContextMenu"+vc.VCName;
+                    span["id"] = "theContextMenu" + vc.VCName;
                     span["style"] = "Z-INDEX:3103;LEFT:0px;VISIBILITY:hidden;BEHAVIOR: url(menubar.htc);WIDTH:200px;POSITION:absolute;TOP: 0px;HEIGHT:20px";
-                    div.Append(span);
-                }
+                    if (vc.Kind == 163)
+                    {
+                        panel.Append(vc.VCNode);
+                        //添加VCName Div
+                        HtmlNode div = new HtmlNode("div");
+                        div["id"] = vc.VCName;
+                        div["style"] = "BEHAVIOR:url(UCMLDBGrid.htc);width:100%;height:200";
+                        div["title"] = vc.Caption;
+                        panel.Append(div);
+
+                        div.Append(span);
+                    }
+                    else if (vc.Kind == 164)
+                    {
+                        HtmlNode div = new HtmlNode("div");
+                        div["id"] = vc.VCName;
+                        div["style"] = "BEHAVIOR:url(UCMLEdit.htc);Width:100%;Height:200";
+                        div["title"] = vc.Caption;
+                        panel.Append(div);
+
+                        div.Append(vc.VCNode);
+                        div.Append(span);
+                    }
             #endregion 构建主页面
+                }
             }
 
             JsContext tailJS = new JsContext();
@@ -1169,7 +1185,7 @@ namespace UCML.IDE.WebUCML
                     PrepareColumn.Content.AppendLine("objColumn.FieldLength = "+bc.Columns[i].FieldLength+";");
                     PrepareColumn.Content.AppendLine("objColumn.DecLength ="+bc.Columns[i].DecLength+";");
                     PrepareColumn.Content.AppendLine("objColumn.EditType = \""+bc.Columns[i].EditType+"\";");
-                    PrepareColumn.Content.AppendLine("objColumn.FieldType = \""+bc.Columns[i].FieldType+"\";");
+                    PrepareColumn.Content.AppendLine("objColumn.FieldType = \"" + GetUcmlTypeName(bc.Columns[i].FieldType) + "\";");
                     PrepareColumn.Content.AppendLine("objColumn.CodeTable = \""+bc.Columns[i].CodeTable+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.fUseCodeTable = "+bc.Columns[i].fUseCodeTable.ToString().ToLower()+";");
                     PrepareColumn.Content.AppendLine("objColumn.fAllowNull = " + bc.Columns[i].fAllowNull.ToString().ToLower() + ";");
@@ -2019,7 +2035,8 @@ namespace UCML.IDE.WebUCML
         {
             AspxDirective directive = new AspxDirective("WebService");
             directive["Language"] = "c#";
-            directive["CodeBehind"] = this.Name+"asmx.cs";
+            if (this.CompileMode) directive["CodeBehind"] = this.Name + "asmx.cs";
+            else directive["CodeFile"] = this.Name+"asmx.cs";
             directive["Class"] = Namespace+"."+this.Name+"Service";
             this.AsmxPage.Directives.Add(directive);
 
@@ -2040,8 +2057,20 @@ namespace UCML.IDE.WebUCML
         }
         public bool SaveAsmxCs()
         {
-            return this.AsmxCs.Save(this.SavePath);
+            string path = null;
+            if (this.CompileMode)
+            {
+                path = this.SavePath;
+                return this.AsmxCs.Save(path);
+            }
+            else
+            {
+                path = this.SavePath + "\\DCompile";
+                return this.AsmxCs.SaveAscii(path);
+            }
+            
         }
+
         public bool SaveAsmxPage()
         {
             return this.AsmxPage.Save(this.SavePath);
@@ -2083,5 +2112,37 @@ namespace UCML.IDE.WebUCML
                 }
             }
         }
+
+        public string GetUcmlTypeName(int type)
+        {
+            string sqlType = "";
+            switch (type)
+            {
+                case 0: sqlType = "Char"; break;
+                case 2: sqlType = "VarChar"; break;
+                case 4: sqlType = "Numberic"; break;
+                case 6: sqlType = "Text"; break;
+                case 8: sqlType = "Date"; break;
+                case 10: sqlType = "Int"; break;
+                case 11: sqlType = "Short"; break;
+                case 12: sqlType = "Byte"; break;
+                case 13: sqlType = "Float"; break;
+                case 14: sqlType = "Double"; break;
+                case 15: sqlType = "Money"; break;
+                case 17: sqlType = "Blob"; break;
+                case 20: sqlType = "Boolean"; break;
+                case 31: sqlType = "Long"; break;
+                case 32: sqlType = "Time"; break;
+                case 33: sqlType = "DateTime"; break;
+                case 40: sqlType = "Image"; break;
+                case 41: sqlType = "WORD"; break;
+                case 42: sqlType = "EXCEL"; break;
+                case 43: sqlType = "HTML"; break;
+                case 45: sqlType = "Guid"; break;
+                case 46: sqlType = "UCMLKey"; break;
+            }
+            return sqlType;
+        }
+
     }
 }

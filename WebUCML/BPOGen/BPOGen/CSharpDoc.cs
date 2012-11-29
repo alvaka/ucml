@@ -57,5 +57,11 @@ namespace UCML.IDE.WebUCML
             if (!path.EndsWith("\\")) path += "\\";
             return Util.SaveTextFile(this.ToString(), path + this.Name);
         }
+        public bool SaveAscii(string path)
+        {
+            if (path == null || path == "") return false;
+            if (!path.EndsWith("\\")) path += "\\";
+            return Util.SaveASCIITextFile(this.ToString(), path + this.Name);
+        }
     }
 }

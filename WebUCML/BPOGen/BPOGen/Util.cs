@@ -21,11 +21,27 @@ namespace UCML.IDE.WebUCML
             return new string[] { text };
         }
 
+        public static bool SaveASCIITextFile(string context, string path)
+        {
+            try
+            {
+                ASCIIEncoding encoding = new ASCIIEncoding();
+                
+                StreamWriter writer = new StreamWriter(path, false,encoding);
+                writer.Write(context);
+                writer.Close();
+            }
+            catch (IOException e)
+            {
+                return false;
+            }
+            return true;
+        }
         public static bool SaveTextFile(string context, string path)
         {
             try
             {
-                StreamWriter writer = new StreamWriter(path, false, Encoding.UTF8);
+                StreamWriter writer = new StreamWriter(path, false,Encoding.UTF8);
                 writer.Write(context);
                 writer.Close();
             }

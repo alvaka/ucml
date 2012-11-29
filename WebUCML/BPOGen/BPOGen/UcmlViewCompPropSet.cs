@@ -28,6 +28,7 @@ namespace UCML.IDE.WebUCML
         public bool alignHeight;
         public bool alignWidth;
         public bool UserDefineHTML;
+        public int Kind;
 
         public List<UcmlVcColumn> Columns;
 
@@ -89,6 +90,7 @@ namespace UCML.IDE.WebUCML
         public string ControlID;
         public string EditContrl;
 
+
     }
 
     public class UcmlVcTabPage
@@ -96,6 +98,7 @@ namespace UCML.IDE.WebUCML
         public List<UcmlViewCompnent> VCList;
         public string Caption;
         public string Name;
+        public int ParentOID;
         public UcmlVcTabPage()
         {
             VCList = new List<UcmlViewCompnent>();

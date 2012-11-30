@@ -12,7 +12,7 @@ namespace UCML.IDE.WebUCML
         public static string[] SplitLine(string text)
         {
             string[] lines = text.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-            if (lines.Length > 1) return lines;
+            if (lines.Length >=1) return lines;
             else
             {
                 lines = text.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);

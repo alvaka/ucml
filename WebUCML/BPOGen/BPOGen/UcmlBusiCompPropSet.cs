@@ -8,24 +8,30 @@ namespace UCML.IDE.WebUCML
     public class UcmlBusiCompPropSet
     {
         public int OID;
+        public int LinkOID;
+        public int LinkPOID;
         public string Name;
         public string Caption;
         public string TableName;
         public bool IsRootBC;
+        public bool IsActor;
         public bool fIDENTITYKey;
         public bool AllowModifyJION;
         public bool fHaveUCMLKey;
+        public int PageCount;
         public string PrimaryKey;
         public string LinkKeyName;
+        public int LinkKeyType;
         public string PK_COLUMN_NAME;
 
         public bool ChangeOnlyOwnerBy;
-
+        public List<UcmlBusiCompPropSet> ChildBC;
         public List<BusiCompColumn> Columns;
 
         public UcmlBusiCompPropSet()
         {
             Columns = new List<BusiCompColumn>();
+            ChildBC = new List<UcmlBusiCompPropSet>();
         }
     }
 

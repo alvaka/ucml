@@ -16,8 +16,9 @@ namespace UCML.IDE.WebUCML
             string connStr = Util.GetDBConnecString("(local)", "UCMLWEBIDEX", "sa", "goodluck");
             SqlConnection conn = new SqlConnection(connStr);
             conn.Open();
-            int bpoid = 14356;
+            //int bpoid = 14356;
             //int bpoid = 14357;
+            int bpoid = 14359;
             BpoPropertySet bps = PrepareBPS(conn, bpoid);
             UcmlBPO ubpo = new UcmlBPO(bps, "UCMLCommon");
             ubpo.CompileMode = false;
@@ -204,11 +205,13 @@ namespace UCML.IDE.WebUCML
             List<UcmlBusiCompPropSet> bcList = new List<UcmlBusiCompPropSet>();
             //构造sql
             StringBuilder sql = new StringBuilder("select b.BCName,b.ChineseName,a.RootTable,b.DataMember,a.AllowModifyJION,a.LinkKeyName,a.PK_COLUMN_NAME,c.fCustomKey,a.BusinessTableOID");
+            sql.Append(",a.fIsActor,a.BusiCompLinkOID,a.ParentOID,a.LinkKeyType,a.ReadMaxCount");
             sql.Append(" from BusiCompLinkDataSet as a,BusinessTableDataSet as b ,UCMLClassDataSet as c ");
             sql.Append("where a.BusinessTableOID=b.BusinessTableOID and b.DataMember=c.ClassName  and a.UCMLClassOID=" + bpoid);
 
             SqlCommand cmd = new SqlCommand(sql.ToString(), conn);
             SqlDataReader reader = cmd.ExecuteReader();
+            
             while (reader.Read())
             {
                 UcmlBusiCompPropSet bc = new UcmlBusiCompPropSet();
@@ -220,19 +223,31 @@ namespace UCML.IDE.WebUCML
                 bc.AllowModifyJION = Util.GetPropBool(reader, 4);
                 bc.LinkKeyName = Util.GetPropString(reader, 5);
                 bc.PK_COLUMN_NAME = Util.GetPropString(reader, 6);
-                bc.fHaveUCMLKey = Util.GetPropBool(reader, 7);
+                bc.fHaveUCMLKey = !Util.GetPropBool(reader, 7);
                 bc.OID = Util.GetProperInt(reader, 8);
-                
+                bc.IsActor = Util.GetPropBool(reader, 9);
+                bc.LinkOID=Util.GetProperInt(reader,10);
+                bc.LinkPOID=Util.GetProperInt(reader,11);
+                bc.LinkKeyType = Util.GetProperInt(reader, 12);
+                bc.PageCount = Util.GetProperInt(reader, 13);
+
+                if (bc.fHaveUCMLKey) bc.PrimaryKey = bc.TableName+"OID";
+
                 bcList.Add(bc);
             }
             reader.Close();
-
+            
             foreach (UcmlBusiCompPropSet bc in bcList)
             {
                 //获取列信息
                 bc.Columns = PrepareBcColumn(conn, bc.OID);
-            }
 
+                //获取子BC
+                foreach (UcmlBusiCompPropSet subBc in bcList)
+                {
+                    if (subBc.LinkPOID == bc.LinkOID) bc.ChildBC.Add(subBc);
+                }
+            }
             return bcList;
         }
 

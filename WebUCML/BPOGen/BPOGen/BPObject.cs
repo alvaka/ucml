@@ -204,7 +204,7 @@ namespace UCML.IDE.WebUCML
                 AspxNode multiPage = new AspxNode("iewc:MultiPage");
                 multiPage["id"] = "MultiPage_" + vcTab.Name;
                 multiPage["width"] = "100%";//待改成变量
-
+                
                 //把TabStrip控件和MultiPage控件挂到MainPanelNode下
                 Page.MainPanelNode.Append(tabStrip);
                 Page.MainPanelNode.Append(multiPage);
@@ -237,15 +237,21 @@ namespace UCML.IDE.WebUCML
                     pageView.Append(panel);
                     //添加ToolBar
                     //添加ToolButton
-                    //挂载VC到panel下
-                    if (vc.VCNode.Childs.Count == 1 && vc.VCNode.Childs[0].OnlyText) vc.VCNode.Childs.Clear();
+
+                    HtmlNode pageNode = null;
+                    if (vc.VCNode == null) pageNode = new HtmlNode("div");
+                    else 
+                    {
+                        if (vc.VCNode.Childs.Count == 1 && vc.VCNode.Childs[0].OnlyText) vc.VCNode.Childs.Clear();
+                        pageNode = vc.VCNode;
+                    }
                     //构造ContextMenu
                     HtmlNode span = new HtmlNode("span");
                     span["id"] = "theContextMenu" + vc.VCName;
                     span["style"] = "Z-INDEX:3103;LEFT:0px;VISIBILITY:hidden;BEHAVIOR: url(menubar.htc);WIDTH:200px;POSITION:absolute;TOP: 0px;HEIGHT:20px";
                     if (vc.Kind == 163)
                     {
-                        panel.Append(vc.VCNode);
+                        panel.Append(pageNode);
                         //添加VCName Div
                         HtmlNode div = new HtmlNode("div");
                         div["id"] = vc.VCName;
@@ -263,7 +269,7 @@ namespace UCML.IDE.WebUCML
                         div["title"] = vc.Caption;
                         panel.Append(div);
 
-                        div.Append(vc.VCNode);
+                        panel.Append(pageNode);
                         div.Append(span);
                     }
             #endregion 构建主页面
@@ -870,8 +876,16 @@ namespace UCML.IDE.WebUCML
                 regUseTable.Content.AppendLine("item.entityType = UCMLCommon.EntityType.MOTIF;");
                 regUseTable.Content.AppendLine("item.Columns = "+bc.Name+"Column;");
                 regUseTable.Content.AppendLine("item.condiColumns = "+bc.Name+"CondiColumn;");
-                regUseTable.Content.AppendLine("item.DBObjectType = typeof(DBLayer."+bc.TableName+");");
-                regUseTable.Content.AppendLine("item.DaoType = typeof(DBLayer."+bc.TableName+");");
+                if (CompileMode)
+                {
+                    regUseTable.Content.AppendLine("item.DBObjectType = typeof(DBLayer." + bc.TableName + ");");
+                    regUseTable.Content.AppendLine("item.DaoType = typeof(DBLayer." + bc.TableName + ");");
+                }
+                else
+                {
+                    regUseTable.Content.AppendLine("item.DBObjectType = typeof(DBLayer.CommonSQLDAO);");
+                    regUseTable.Content.AppendLine("item.DaoType = typeof(DBLayer.CommonSQLDAO);");
+                }
                 regUseTable.Content.AppendLine("item.FieldInfoArray = "+bc.Name+"Column;");
                 regUseTable.Content.AppendLine("item.DBType = UCMLCommon.DBType.MSSQL;");//数据库连接类型
                 regUseTable.Content.AppendLine("item.Provider = UCMLCommon.DBProvider.MSSQLNA;");
@@ -879,9 +893,9 @@ namespace UCML.IDE.WebUCML
                 regUseTable.Content.AppendLine("item.DataAccessControlFieldName = \"\";");
                 regUseTable.Content.AppendLine("item.CatalogFieldName = \"\";");
                 regUseTable.Content.AppendLine("item.CatalogFieldValue = \"\";");
-                regUseTable.Content.AppendLine("item.LinkKeyName = \"\";");
-                regUseTable.Content.AppendLine("item.LinkKeyType = 46;");
-                regUseTable.Content.AppendLine("item.PK_COLUMN_NAME = \"\";");
+                regUseTable.Content.AppendLine("item.LinkKeyName = \""+bc.LinkKeyName+"\";");
+                regUseTable.Content.AppendLine("item.LinkKeyType = "+bc.LinkKeyType+";");
+                regUseTable.Content.AppendLine("item.PK_COLUMN_NAME = \""+bc.PK_COLUMN_NAME+"\";");
                 regUseTable.Content.AppendLine("item.CascadeDeleteMode = 1;");
                 regUseTable.Content.AppendLine("item.CascadeTableName = \"\";");
                 regUseTable.Content.AppendLine("item.CascadeFKName = \"\";");
@@ -893,11 +907,19 @@ namespace UCML.IDE.WebUCML
                 regUseTable.Content.AppendLine("item.AllowModifyJION = false;");
                 regUseTable.Content.AppendLine("item.AllowModifyFK = \"\";");
                 regUseTable.Content.AppendLine("item.fNumToString =  false;");
-                regUseTable.Content.AppendLine("item.PageCount = 10;");
+                regUseTable.Content.AppendLine("item.PageCount = "+bc.PageCount+";");
                 regUseTable.Content.AppendLine("item.fNotReadData = false;");
-                regUseTable.Content.AppendLine("item.IsRootBC = true;");
+                regUseTable.Content.AppendLine("item.IsRootBC = "+bc.IsRootBC.ToString().ToLower()+";");
                 regUseTable.Content.AppendLine("item.JoinInfo = new UCMLJoinInfo[0];");
                 regUseTable.Content.AppendLine("item.BusiViewModes = new UCMLCommon.UCMLBusiViewMode[0];");
+                if (bc.ChildBC.Count != 0)
+                {
+                    regUseTable.Content.AppendLine("item.childTables = new DataTable["+bc.ChildBC.Count+"];");
+                    for (int i = 0; i < bc.ChildBC.Count;i++ )
+                    {
+                        regUseTable.Content.AppendLine("item.childTables["+i+"] ="+bc.ChildBC[i].Name+";");
+                    }
+                }
                 regUseTable.Content.AppendLine(" if (fLoalClass)");
                 regUseTable.Content.AppendLine("    item.BuildDataTableEx();");
                 regUseTable.Content.AppendLine("if (item.dataTable.Columns.Count==0)");
@@ -2043,6 +2065,10 @@ namespace UCML.IDE.WebUCML
             return true;
         }
 
+        /// <summary>
+        /// 保存Aspx页面文件
+        /// </summary>
+        /// <returns></returns>
         public bool SaveAspxPage()
         {
             return this.Page.Save(this.SavePath);

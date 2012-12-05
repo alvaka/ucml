@@ -1,0 +1,5 @@
+E:\workspace\GitHub\ucml\WebUCML\BPOAssemble\BPOAssemble\bin\Debug\BPOAssemble.exe
+E:\workspace\GitHub\ucml\WebUCML\BPOAssemble\BPOAssemble\bin\Debug\BPOAssemble.pdb
+E:\workspace\GitHub\ucml\WebUCML\BPOAssemble\BPOAssemble\obj\x86\Debug\ResolveAssemblyReference.cache
+E:\workspace\GitHub\ucml\WebUCML\BPOAssemble\BPOAssemble\obj\x86\Debug\BPOAssemble.exe
+E:\workspace\GitHub\ucml\WebUCML\BPOAssemble\BPOAssemble\obj\x86\Debug\BPOAssemble.pdb

@@ -44,7 +44,7 @@ namespace UCML.IDE.WebUCML
             BpoPropSet = bps;
             Page = new AspxPage(bps.Name + ".aspx",bps.Capiton);
             PageCs = new CSharpDoc(bps.Name+".aspx.cs", Namespace);
-            PageDesignerCs = new CSharpDoc(bps.Name + ".designer.cs", Namespace);
+            PageDesignerCs = new CSharpDoc(bps.Name + ".aspx.designer.cs", Namespace);
             AsmxCs = new CSharpDoc(this.Name+".asmx.cs", Namespace);
             BpoHtc=new HtcDoc(this.Name+".htc");
 
@@ -68,7 +68,7 @@ namespace UCML.IDE.WebUCML
             direc4Page["language"] = "C#";
             if (this.CompileMode) direc4Page["codeBehind"] = Page.PageName + ".cs";
             else direc4Page["codeFile"] = Page.PageName + ".cs";
-            direc4Page["codeFile"]= Page.PageName+".cs";
+            
             direc4Page["Inherits"]="UCMLCommon."+this.Name;
             direc4Page["AutoEventWireup"]="False";
             direc4Page["ResponseEncoding"] = "UTF-8";
@@ -80,6 +80,7 @@ namespace UCML.IDE.WebUCML
 
             Page.Directives.Add(direc4Page);
             Page.Directives.Add(direc4Reg);
+
             //添加META标签
             HtmlNode metaCompatible1 = HtmlNode.CreateClosedNode("meta");
             metaCompatible1["http-equiv"] = "X-UA-Compatible";
@@ -215,6 +216,7 @@ namespace UCML.IDE.WebUCML
                     AspxNode tab = new AspxNode("iewc:Tab");
                     tab["id"] = "Tab_" + vc.VCName;
                     tab["Text"] = vc.Caption;
+
                     //添加TabSeperator控件
                     HtmlNode tabSep = HtmlNode.CreateClosedNode("iewc:TabSeparator");
                     //挂到tabStrip下
@@ -225,6 +227,7 @@ namespace UCML.IDE.WebUCML
                     AspxNode pageView = new AspxNode("iewc:PageView");
                     pageView["id"] = "PageView_" + vc.VCName;
                     pageView["Text"] = vc.Caption;
+
                     //添加Panel控件
                     AspxNode panel = new AspxNode("asp:Panel");
                     panel["id"] = vc.VCName + "_Module";
@@ -235,8 +238,34 @@ namespace UCML.IDE.WebUCML
                     multiPage.Append(pageView);
                     //挂载Panel到PageView下
                     pageView.Append(panel);
+
                     //添加ToolBar
-                    //添加ToolButton
+                    if (vc.Buttons.Count != 0)
+                    {
+                        AspxNode toolBar = new AspxNode("iewc:Toolbar");
+                        toolBar["id"] = "ToolBar" + vc.VCName;
+                        toolBar["style"] = "Z-INDEX: 102; LEFT: 0px; TOP: 0px";
+                        toolBar["Height"] = "23px";
+                        toolBar["Width"] = "100%";
+                        panel.Append(toolBar);
+
+                        //添加ToolButton
+                        foreach (UcmlVcButton button in vc.Buttons)
+                        {
+                            if (button.Type == 0)
+                            {
+                                HtmlNode btn = new HtmlNode("iewc:ToolbarButton");
+                                btn["Text"] = button.Caption;
+                                btn["ToolTip"] = button.ToolTip;
+                                btn["ImageUrl"] = button.ImgeLink;
+                                toolBar.Append(btn);
+                            }
+                            else if (button.Type == 4)
+                            {
+                                toolBar.Append(new HtmlNode("iewc:ToolbarSeparator"));
+                            }
+                        }
+                    }
 
                     HtmlNode pageNode = null;
                     if (vc.VCNode == null) pageNode = new HtmlNode("div");
@@ -261,7 +290,7 @@ namespace UCML.IDE.WebUCML
 
                         div.Append(span);
                     }
-                    else if (vc.Kind == 164)
+                    else if (vc.Kind == 164||vc.Kind==165)
                     {
                         HtmlNode div = new HtmlNode("div");
                         div["id"] = vc.VCName;
@@ -269,7 +298,7 @@ namespace UCML.IDE.WebUCML
                         div["title"] = vc.Caption;
                         panel.Append(div);
 
-                        panel.Append(pageNode);
+                        div.Append(pageNode);
                         div.Append(span);
                     }
             #endregion 构建主页面
@@ -300,6 +329,17 @@ namespace UCML.IDE.WebUCML
             PageCs.ReferenceNS.Add("Microsoft.Web.UI.WebControls");
             PageCs.ReferenceNS.Add("System.Data.SqlClient");
             PageCs.ReferenceNS.Add("System.Collections.Specialized");
+
+            //添加自定义Namespace引用 
+            if (!String.IsNullOrWhiteSpace(this.BpoPropSet.RefCSharpLibrary))
+            {
+                string[] lines = Util.SplitLine(this.BpoPropSet.RefCSharpLibrary);
+                foreach (string line in lines)
+                {
+                    PageCs.ReferenceNS.Add(line);
+                }
+            }
+
             PageCs.ReferenceNS.Add("DBLayer");
 
             //类定义
@@ -674,12 +714,22 @@ namespace UCML.IDE.WebUCML
             CSharpFunction iocPost = new CSharpFunction("IOC_HttpPost");
             iocPost.AccessAuth = AccessAuthority.PRIVATE;
             iocPost.ReturnType = "void";
-            bpoClass.AddFunction(iocPost);
 
             //添加RePositionApplet函数
             CSharpFunction rpApplet = new CSharpFunction("RePositionApplet");
             rpApplet.AccessAuth = AccessAuthority.PRIVATE;
             rpApplet.ReturnType = "void";
+
+            //添加自定义代码
+            foreach(UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    iocPost.Content.AppendLine(vc.HttpPostCSharpCode);
+                    iocGet.Content.AppendLine(vc.HttpGetCSharpCode);
+                }
+            }
+            bpoClass.AddFunction(iocPost);
             bpoClass.AddFunction(rpApplet);
 
             //添加ReplaceResourceData函数
@@ -745,8 +795,18 @@ namespace UCML.IDE.WebUCML
             AsmxCs.ReferenceNS.Add("System.ComponentModel");
             AsmxCs.ReferenceNS.Add("System.Web.Services");
             AsmxCs.ReferenceNS.Add("System.Web");
-            
             AsmxCs.ReferenceNS.Add("System.Diagnostics");
+
+            //添加自定义Namespace引用 
+            if (!String.IsNullOrWhiteSpace(this.BpoPropSet.RefCSharpLibrary))
+            {
+                string[] lines = Util.SplitLine(this.BpoPropSet.RefCSharpLibrary);
+                foreach (string line in lines)
+                {
+                    PageCs.ReferenceNS.Add(line);
+                }
+            }
+
             AsmxCs.ReferenceNS.Add("DBLayer");
 
             CSharpClass asmxClass = new CSharpClass(this.Name+"Service");
@@ -760,19 +820,23 @@ namespace UCML.IDE.WebUCML
                 CSharpClassField bcTable = new CSharpClassField("DataTable", "ds" + bc.Name);
                 bcTable.AccessAuth = AccessAuthority.PRIVATE;
                 asmxClass.FieldList.Add(bcTable);
+
                 //添加dsBCNameBase字段
                 CSharpClassField bcBase = new CSharpClassField("UCMLCommon.UseEntityClass", "ds" + bc.Name + "Base");
                 bcBase.AccessAuth = AccessAuthority.PRIVATE;
                 asmxClass.FieldList.Add(bcBase);
+
                 //添加BCNameColumn字段
                 CSharpClassField bcColumn = new CSharpClassField("UCMLCommon.BusinessColumn[]", bc.Name + "Column");
                 bcColumn.AccessAuth = AccessAuthority.PUBLIC;
                 asmxClass.FieldList.Add(bcColumn);
+
                 //添加BCNameCondiColumn字段
                 CSharpClassField bcCondiColumn = new CSharpClassField("UCMLCommon.BusinessColumn[]", bc.Name + "CondiColumn");
                 bcCondiColumn.AccessAuth = AccessAuthority.PUBLIC;
                 asmxClass.FieldList.Add(bcCondiColumn);
             }
+
             //添加Column字段
             CSharpClassField column = new CSharpClassField("UCMLCommon.BusinessColumn", "column");
             column.AccessAuth = AccessAuthority.PRIVATE;
@@ -932,7 +996,7 @@ namespace UCML.IDE.WebUCML
                 regUseTable.Content.AppendLine("item.fHaveUCMLKey = true;");
                 regUseTable.Content.AppendLine("item.fIDENTITYKey = false;");
                 regUseTable.Content.AppendLine("item.BaseKeyField = \""+bc.TableName+"OID\";");
-                regUseTable.Content.AppendLine(" UseEntityArray["+index+"] = item;");
+                regUseTable.Content.AppendLine("UseEntityArray["+index+"] = item;");
                 index++;
             }
             
@@ -1004,6 +1068,36 @@ namespace UCML.IDE.WebUCML
                     i++;
                 }
                 PrepareColumn.Content.AppendLine("}");
+                PrepareColumn.Content.AppendLine(bc.Name+"CondiColumn = new UCMLCommon.BusinessColumn["+bc.CondiColumns.Count+"];");
+                for (int j = 0; j < bc.CondiColumns.Count; j++)
+                {
+                    PrepareColumn.Content.AppendLine("column = new UCMLCommon.BusinessColumn();");
+                    PrepareColumn.Content.AppendLine("column.FieldName = \""+bc.CondiColumns[j].FieldName+"\";");
+                    PrepareColumn.Content.AppendLine("column.LeftBracket = \""+bc.CondiColumns[j].LeftBracket+"\";");
+                    PrepareColumn.Content.AppendLine("column.RightBracket = \""+bc.CondiColumns[j].RightBracket+"\";");
+                    PrepareColumn.Content.AppendLine("column.FieldType = "+bc.CondiColumns[j].FieldType+";");
+                    PrepareColumn.Content.AppendLine("column.OperationIndent = \""+bc.CondiColumns[j].OperationIndent+"\";");
+                    PrepareColumn.Content.AppendLine("column.LogicConnect = \""+bc.CondiColumns[j].LogicConnect+"\";");
+                    PrepareColumn.Content.AppendLine("column.CondiFieldValue = \""+bc.CondiColumns[j].CondiFieldValue+"\";");
+                    PrepareColumn.Content.AppendLine("column.fCondiField = "+bc.CondiColumns[j].fCondiField.ToString().ToLower()+";");
+                    PrepareColumn.Content.AppendLine("column.fIsFunctionValue = "+bc.CondiColumns[j].fIsFunctionValue.ToString().ToLower()+";");
+                    PrepareColumn.Content.AppendLine("column.fFreeWhere = "+bc.CondiColumns[j].fFreeWhere.ToString().ToLower()+"; ");
+                    PrepareColumn.Content.AppendLine("column.Pos = "+bc.CondiColumns[j].Pos+";");
+                    if (bc.CondiColumns[j].fIsFunctionValue)
+                    {
+                        PrepareColumn.Content.AppendLine("column.getValueHandler += new System.EventHandler(this.get" + bc.Name + bc.CondiColumns[j].FieldName + j + "ValueEx);");
+                    }
+                    else if (bc.CondiColumns[j].fFreeWhere)
+                    {
+                        PrepareColumn.Content.AppendLine("column.getWhereItemHandler += new System.EventHandler(this.get"+bc.Name+j+"WhereItemEx);");
+                    }
+                    PrepareColumn.Content.AppendLine(bc.Name+"CondiColumn["+j+"] = column;");
+                    PrepareColumn.Content.AppendLine("");
+                }
+                
+                PrepareColumn.Content.AppendLine("");
+                PrepareColumn.Content.AppendLine("");
+
                 PrepareColumn.Content.AppendLine();
             }
             asmxClass.AddFunction(PrepareColumn);
@@ -1048,28 +1142,93 @@ namespace UCML.IDE.WebUCML
             BusinessInit.IsOverride = true;
             BusinessInit.ReturnType = "void";
             BusinessInit.Content.AppendLine("base.BusinessInit();");
-            asmxClass.AddFunction(BusinessInit);
+            
 
             //添加BeforeBusinessSubmit 函数
             CSharpFunction BeforeBusinessSubmit = new CSharpFunction("BeforeBusinessSubmit");
             BeforeBusinessSubmit.AccessAuth = AccessAuthority.PROTECTED;
             BeforeBusinessSubmit.IsOverride = true;
             BeforeBusinessSubmit.ReturnType = "bool";
-            BeforeBusinessSubmit.Content.AppendLine("return true;");
-            asmxClass.AddFunction(BeforeBusinessSubmit);
 
             //添加AfterBusinessSubmit 函数
             CSharpFunction AfterBusinessSubmit = new CSharpFunction("AfterBusinessSubmit");
             AfterBusinessSubmit.AccessAuth = AccessAuthority.PROTECTED;
             AfterBusinessSubmit.IsOverride = true;
             AfterBusinessSubmit.ReturnType = "void";
+
+            //添加BC级别的代码
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                BusinessInit.Content.AppendLine(bc.InitCSharpCode);
+                BeforeBusinessSubmit.Content.AppendLine(bc.BeforeSubmitCSharpCode);
+                AfterBusinessSubmit.Content.AppendLine(bc.AfterSubmitCSharpCode);
+            }
+
+            //添加BPO级别的代码
+            BusinessInit.Content.AppendLine(this.BpoPropSet.InitCSharpCode);
+
+            BeforeBusinessSubmit.Content.AppendLine(this.BpoPropSet.BeforeSubmitCSharpCode);
+            BeforeBusinessSubmit.Content.AppendLine("return true;");
+
+            AfterBusinessSubmit.Content.AppendLine(this.BpoPropSet.AfterSubmitCSharpCode);
+
+            asmxClass.AddFunction(BeforeBusinessSubmit);
+            asmxClass.AddFunction(BusinessInit);
             asmxClass.AddFunction(AfterBusinessSubmit);
 
+            
+            //添加自定义函数
+            foreach (CSharpFunction func in BpoPropSet.CSharpFuncs)
+            {
+                asmxClass.AddFunction(func);
+            }
+            //
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                for (int i = 0; i < bc.CondiColumns.Count;i++ )
+                {
+                    if (bc.CondiColumns[i].fIsFunctionValue)
+                    {
+                        CSharpFunction getValueEx = new CSharpFunction("get" + bc.Name + bc.CondiColumns[i].FieldName+i+"ValueEx");
+                        getValueEx.AccessAuth = AccessAuthority.PROTECTED;
+                        getValueEx.ReturnType = "void";
+                        getValueEx.Parameters.Add("object", "sender");
+                        getValueEx.Parameters.Add("EventArgs","e");
+                        getValueEx.Content.AppendLine("((UCMLCommon.FieldValueEventArgs)e).Value=(get"+ bc.Name + bc.CondiColumns[i].FieldName+i+"Value());");
+                        asmxClass.AddFunction(getValueEx);
 
+                        CSharpFunction getValue = new CSharpFunction("get" + bc.Name + bc.CondiColumns[i].FieldName + i + "Value");
+                        getValue.AccessAuth = AccessAuthority.PROTECTED;
+                        getValue.ReturnType = "string";
+                        getValue.Content.AppendLine(bc.CondiColumns[i].valueFunction);
+                        asmxClass.AddFunction(getValue);
+                    }
+                    else if (bc.CondiColumns[i].fFreeWhere)
+                    {
+                        CSharpFunction getWhereItemEx = new CSharpFunction("get" + bc.Name + i + "WhereItemEx");
+                        getWhereItemEx.AccessAuth = AccessAuthority.PROTECTED;
+                        getWhereItemEx.ReturnType = "void";
+                        getWhereItemEx.Parameters.Add("object", "sender");
+                        getWhereItemEx.Parameters.Add("EventArgs", "e");
+                        getWhereItemEx.Content.AppendLine("((UCMLCommon.WhereItemEventArgs)e).WhereItem=(get" + bc.Name + i + "WhereItem());");
+                        asmxClass.AddFunction(getWhereItemEx);
+
+                        CSharpFunction getWhereItem = new CSharpFunction("get" + bc.Name + i + "WhereItem");
+                        getWhereItem.AccessAuth = AccessAuthority.PROTECTED;
+                        getWhereItem.ReturnType = "string";
+                        getWhereItem.Content.AppendLine(bc.CondiColumns[i].SQL);
+                        asmxClass.AddFunction(getWhereItem);
+                    }
+                }
+            }
             AsmxCs.InnerClass.Add(asmxClass);
             return true;
         }
 
+        /// <summary>
+        /// 装配BPOName.htc脚本文件
+        /// </summary>
+        /// <returns></returns>
         public bool BuildBpoHtc()
         {
             //标准方法定义
@@ -1095,6 +1254,10 @@ namespace UCML.IDE.WebUCML
             this.BpoHtc.Definition.AppendLine("<public:method name=\"getBCList\"/>");
             this.BpoHtc.Definition.AppendLine("<public:method name=\"HideSelect\"/>");
             this.BpoHtc.Definition.AppendLine("<public:method name=\"ShowSelect\"/>");
+            foreach(JsFunction func in BpoPropSet.JsFuncs)
+            {
+                this.BpoHtc.Definition.AppendLine("<public:method name=\""+func.Name+"\"/>");
+            }
             //标准事件定义
             this.BpoHtc.Definition.AppendLine("<public:event id=\"OnBeforeOpen\" name=\"onbeforeopen\">");
             this.BpoHtc.Definition.AppendLine("<public:event id=\"OnAfterOpen\" name=\"onafteropen\">");
@@ -1229,12 +1392,36 @@ namespace UCML.IDE.WebUCML
                     PrepareColumn.Content.AppendLine("objColumn.fFunctionInitValue = " + bc.Columns[i].fFunctionInitValue.ToString().ToLower() + ";");
                     PrepareColumn.Content.AppendLine("objColumn.InitValueFunc = \""+bc.Columns[i].InitValueFunc+"\";");
                     PrepareColumn.Content.AppendLine("objColumn.ExcelColNo = "+bc.Columns[i].ExcelColNo+";");
+                    if (!String.IsNullOrWhiteSpace(bc.Columns[i].BCLink.AppletName))
+                    {
+                        PrepareColumn.Content.AppendLine("var objBCLinkColl = new Array();");
+                        PrepareColumn.Content.AppendLine("var objBCLink = new Object();");
+                        PrepareColumn.Content.AppendLine("objBCLink.QueryFieldName = \""+bc.Columns[i].BCLink.QueryFieldName+"\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.fQuickQuery = " + bc.Columns[i].BCLink.fQuickQuery.ToString().ToLower()+ ";");
+                        PrepareColumn.Content.AppendLine("objBCLink.fDropDownMode= " + bc.Columns[i].BCLink.fDropDownMode.ToString().ToLower() + ";");
+                        PrepareColumn.Content.AppendLine("objBCLink.DropDownWidth= " + bc.Columns[i].BCLink.DropDownWidth+ ";");
+                        PrepareColumn.Content.AppendLine("objBCLink.DropDownHeight= " + bc.Columns[i].BCLink.DropDownHeight+ ";");
+                        PrepareColumn.Content.AppendLine("objBCLink.BCName = \"" + bc.Columns[i].BCLink.AppletName+ "\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.Caption = \"" + bc.Columns[i].BCLink.Caption+ "\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.BCRunMode = "+bc.Columns[i].BCLink.RunMode+";");
+                        PrepareColumn.Content.AppendLine("objBCLink.srcFieldName = \"" + bc.Columns[i].BCLink.srcFieldName+ "\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.destFieldName = \""+bc.Columns[i].BCLink.destFieldName+"\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.condiFieldName = \"" + bc.Columns[i].BCLink.condiFieldName+ "\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.constValue = \""+bc.Columns[i].BCLink.Value+"\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.targetTable = \""+bc.Name+"\";");
+                        PrepareColumn.Content.AppendLine("objBCLink.urlFuncName = \""+bc.Name+"_"+bc.Columns[i].FieldName+"0\";");
+                        PrepareColumn.Content.AppendLine("objBCLinkColl[objBCLinkColl.length] = objBCLink;");
+                        PrepareColumn.Content.AppendLine("var objBCLoadCondiColl = new Array();");
+                        PrepareColumn.Content.AppendLine("objBCLink.objBCLoadCondiColl = objBCLoadCondiColl;");
+                        PrepareColumn.Content.AppendLine("objColumn.objBCLinkColl = objBCLinkColl;");
+                    }
                     PrepareColumn.Content.AppendLine(bcCol+"["+index+"] = objColumn;");
                     index++;
                     i++;
                     PrepareColumn.Content.AppendLine("");
                 }
             }
+
             foreach (UcmlVcTabPage vcTab in this.VcTabList)
             {
                 foreach (UcmlViewCompnent vc in vcTab.VCList)
@@ -1275,7 +1462,18 @@ namespace UCML.IDE.WebUCML
                         PrepareColumn.Content.AppendLine("objColumn.CustomerControlHTC = \""+vc.Columns[i].CustomerControlHTC+"\";");
                         PrepareColumn.Content.AppendLine("objColumn.ControlID = \""+vc.Columns[i].ControlID+"\";");
                         PrepareColumn.Content.AppendLine("objColumn.EditContrl = \"\";");
-                        PrepareColumn.Content.AppendLine(vcCol+"["+i+"] = objColumn;");
+                        //查询VC需要的字段
+                        if (vc.Kind == 165)
+                        {
+                            PrepareColumn.Content.AppendLine("objColumn.LeftBracket = \"" + vc.Columns[i].LeftBracket + "\";");
+                            PrepareColumn.Content.AppendLine("objColumn.RightBracket = \"" + vc.Columns[i].RightBracket + "\";");
+                            PrepareColumn.Content.AppendLine("objColumn.LogicConnect = \"" + vc.Columns[i].LogicConnect + "\";");
+                            PrepareColumn.Content.AppendLine("objColumn.CondiFieldValue = \"" + vc.Columns[i].CondiFieldValue + "\";");
+                            PrepareColumn.Content.AppendLine("objColumn.fIsFunctionValue = \"" + vc.Columns[i].fIsFunctionValue.ToString().ToLower() + "\";");
+                            PrepareColumn.Content.AppendLine("objColumn.InnerLinkComp = \"" + vc.Columns[i].InnerLinkComp.ToString().ToLower() + "\";");
+                            PrepareColumn.Content.AppendLine("objColumn.OperationIndent = \"" + vc.Columns[i].OperationIndent + "\";");
+                        }
+                        PrepareColumn.Content.AppendLine(vcCol + "[" + i + "] = objColumn;");
                         i++;
                     }
                 }
@@ -1286,24 +1484,117 @@ namespace UCML.IDE.WebUCML
 
             //BusinessInit
             JsFunction BusinessInit = new JsFunction("BusinessInit");
-            //添加BPO级别的代码
-            BusinessInit.Content.AppendLine(this.BpoPropSet.InitScript);
-
-            BpoHtc.FuncList.Add(BusinessInit);
 
             //BeforeSubmit
             JsFunction BeforeSubmit = new JsFunction("BeforeSubmit");
-            //添加BPO级别的代码
-            BeforeSubmit.Content.AppendLine(this.BpoPropSet.BeforeSubmitScript);
-            BeforeSubmit.Content.AppendLine("return true;");
-
-            BpoHtc.FuncList.Add(BeforeSubmit);
 
             //AfterSubmit
             JsFunction AfterSubmit = new JsFunction("AfterSubmit");
-            //添加BPO级别的代码
-            AfterSubmit.Content.AppendLine(this.BpoPropSet.AfterSubmitScript);
 
+            //添加BC级别的JS代码
+            foreach (UcmlBusiCompPropSet bc in this.BCList)
+            {
+                //注册BCNameBase.OnCalculate事件，并添加BCNameOnCalculate函数
+                if(!String.IsNullOrWhiteSpace(bc.OnCalculateScript))
+                {
+                    BusinessInit.Content.AppendLine(bc.Name+"Base.OnCalculate="+bc.Name+"OnCalculate;");
+                    JsFunction bcOnCalculate = new JsFunction(bc.Name+"OnCalculate");
+                    bcOnCalculate.Content.AppendLine(bc.OnCalculateScript);
+                    BpoHtc.FuncList.Add(bcOnCalculate);
+                }
+
+                //注册BCNameBase.OnRecordChange事件，并添加BCNameOnRecordChange函数
+                if (!String.IsNullOrWhiteSpace(bc.OnRecordChangeScript))
+                {
+                    BusinessInit.Content.AppendLine(bc.Name + "Base.OnRecordChange=" + bc.Name + "OnRecordChange;");
+                    JsFunction bcOnRecordChange = new JsFunction(bc.Name + "OnRecordChange");
+                    bcOnRecordChange.Content.AppendLine(bc.OnRecordChangeScript);
+                    BpoHtc.FuncList.Add(bcOnRecordChange);
+                }
+
+                //注册BCNameBase.OnBeforeInsert事件，并添加BCNameOnBeforeInsert函数
+                if (!String.IsNullOrWhiteSpace(bc.OnBeforeInsertScript))
+                {
+                    BusinessInit.Content.AppendLine(bc.Name+"Base.OnBeforeInsert="+bc.Name+"OnBeforeInsert;");
+                    JsFunction bcOnBeforeInsert = new JsFunction(bc.Name+"OnBeforeInsert");
+                    bcOnBeforeInsert.Content.AppendLine(bc.OnBeforeInsertScript);
+                    BpoHtc.FuncList.Add(bcOnBeforeInsert);
+                }
+
+                //注册BCNameBase.OnAfterInsert事件，并添加BCNameOnAfterInsert函数
+                if (!String.IsNullOrWhiteSpace(bc.OnAfterInsertScript))
+                {
+                    BusinessInit.Content.AppendLine(bc.Name + "Base.OnAfterInsert=" + bc.Name + "OnAfterInsert;");
+                    JsFunction bcOnAfterInsert = new JsFunction(bc.Name + "OnAfterInsert");
+                    bcOnAfterInsert.Content.AppendLine(bc.OnAfterInsertScript);
+                    BpoHtc.FuncList.Add(bcOnAfterInsert);
+                }
+
+                //注册BCNameBase.OnFieldChange事件，并添加BCNameOnFieldChange函数
+                BusinessInit.Content.AppendLine(bc.Name+"Base.OnFieldChange="+bc.Name+"OnFieldChange;");
+                JsFunction bcOnFieldChange = new JsFunction(bc.Name+"OnFieldChange");
+                foreach (BusiCompColumn column in bc.Columns)
+                {
+                    if(!String.IsNullOrWhiteSpace(column.OnFieldChangeScript))
+                    {
+                        bcOnFieldChange.Content.AppendLine("if (event.FieldName==\""+column.FieldName+"\")");
+                        bcOnFieldChange.Content.AppendLine("{");
+                        bcOnFieldChange.Content.AppendLine(column.OnFieldChangeScript);
+                        bcOnFieldChange.Content.AppendLine("}");
+                    }
+                }
+                BpoHtc.FuncList.Add(bcOnFieldChange);
+
+                //初始化代码
+                BusinessInit.Content.AppendLine(bc.InitScript);
+                //提交前代码
+                BeforeSubmit.Content.AppendLine(bc.BeforeUpdateScript);
+                //提交后代码
+                AfterSubmit.Content.AppendLine(bc.AfterUpdateScript);
+            }
+
+            //添加VC级别的JS代码
+            foreach (UcmlVcTabPage vcTab in this.VcTabList)
+            {
+                foreach (UcmlViewCompnent vc in vcTab.VCList)
+                {
+                    BusinessInit.Content.AppendLine(vc.InitScript);
+
+                    //注册按钮事件
+                    if (vc.Buttons.Count != 0)
+                    {
+                        BusinessInit.Content.AppendLine("ToolBar" + vc.VCName + ".onbuttonclick=" + vc.VCName + "ButtonClick;");
+                        JsFunction btnClick = new JsFunction(vc.VCName + "ButtonClick");
+                        int btnIndex = 0;
+                        foreach (UcmlVcButton button in vc.Buttons)
+                        {
+                            if (button.Type == 0)
+                            {
+                                btnClick.Content.AppendLine("if(event.flatIndex==" + btnIndex + ")");
+                                btnClick.Content.AppendLine("{");
+                                string[] lines = Util.SplitLine(button.OnClickScript);
+                                foreach (string line in lines) btnClick.Content.AppendLine("   " + line.Trim());
+                                btnClick.Content.AppendLine("   return;");
+                                btnClick.Content.AppendLine("}");
+                            }
+                            btnIndex++;
+                        }
+                        BpoHtc.FuncList.Add(btnClick);
+                    }
+                    BeforeSubmit.Content.AppendLine(vc.BeforeUpdateScript);
+                    AfterSubmit.Content.AppendLine(vc.AfterApplyScript);
+                }
+            }
+
+            //添加BPO级别的JS代码
+            BusinessInit.Content.AppendLine(this.BpoPropSet.InitScript);
+            BeforeSubmit.Content.AppendLine(this.BpoPropSet.BeforeSubmitScript);
+            AfterSubmit.Content.AppendLine(this.BpoPropSet.AfterSubmitScript);
+            
+            BeforeSubmit.Content.AppendLine("return true;");
+
+            BpoHtc.FuncList.Add(BusinessInit);
+            BpoHtc.FuncList.Add(BeforeSubmit);
             BpoHtc.FuncList.Add(AfterSubmit);
 
             //CanSubmit
@@ -1314,7 +1605,7 @@ namespace UCML.IDE.WebUCML
             CanSubmit.Content.AppendLine("   result = UseTableList[i].Valiate();");
             CanSubmit.Content.AppendLine("   if (result==false) break;");
             CanSubmit.Content.AppendLine("}");
-            CanSubmit.Content.AppendLine("return result");
+            CanSubmit.Content.AppendLine("return result;");
             BpoHtc.FuncList.Add(CanSubmit);
 
             //BusinessSubmit
@@ -1873,7 +2164,7 @@ namespace UCML.IDE.WebUCML
             DeltaUpdate.Content.AppendLine("   }");
             DeltaUpdate.Content.AppendLine("}");
 
-            //bpoHtc.FuncList.Add(DeltaUpdate);
+            BpoHtc.FuncList.Add(DeltaUpdate);
 
             //getResourceData
             JsFunction getResourceData = new JsFunction("getResourceData");
@@ -2051,6 +2342,11 @@ namespace UCML.IDE.WebUCML
             HideMessage.Content.AppendLine("MsgPanel.style.visibility=\"hidden\";");
             BpoHtc.FuncList.Add(HideMessage);
 
+            //自定义函数
+            foreach (JsFunction func in BpoPropSet.JsFuncs)
+            {
+                BpoHtc.FuncList.Add(func);
+            }
 
             //装备完毕
 
@@ -2058,14 +2354,9 @@ namespace UCML.IDE.WebUCML
         }
 
         /// <summary>
-        /// 装配TableName.htc脚本文件
+        /// 装配BPOName.asmx页面
         /// </summary>
         /// <returns></returns>
-        public bool BuildTableHtc()
-        {
-            return true;
-        }
-
         public bool BuildAsmxPage()
         {
             AspxDirective directive = new AspxDirective("WebService");
@@ -2152,7 +2443,7 @@ namespace UCML.IDE.WebUCML
             }
         }
 
-        public string GetUcmlTypeName(int type)
+        public static string GetUcmlTypeName(int type)
         {
             string sqlType = "";
             switch (type)

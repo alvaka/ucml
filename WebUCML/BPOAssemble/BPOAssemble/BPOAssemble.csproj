@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="AsmxDoc.cs" />
     <Compile Include="AspxPage.cs" />
+    <Compile Include="BCLink.cs" />
     <Compile Include="BPObject.cs" />
     <Compile Include="BpoPrepare.cs" />
     <Compile Include="BpoPropertySet.cs" />
@@ -60,6 +61,7 @@
     <Compile Include="UcmlBusiCompPropSet.cs" />
     <Compile Include="UcmlViewCompPropSet.cs" />
     <Compile Include="Util.cs" />
+    <Compile Include="VcSourceGenner.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

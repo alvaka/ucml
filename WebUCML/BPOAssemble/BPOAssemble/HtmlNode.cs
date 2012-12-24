@@ -111,8 +111,11 @@ namespace UCML.IDE.WebUCML
         {
             Attributes = new Dictionary<string, string>();
             Childs = new List<HtmlNode>();
+            this.InnerText = "";
+            this.InnerHTML = "";
             this.Name = name;
         }
+
         public HtmlNode(string name,string type)
         {
             Attributes = new Dictionary<string, string>();

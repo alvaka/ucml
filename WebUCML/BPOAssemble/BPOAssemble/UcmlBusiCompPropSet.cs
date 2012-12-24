@@ -24,6 +24,21 @@ namespace UCML.IDE.WebUCML
         public int LinkKeyType;
         public string PK_COLUMN_NAME;
 
+        //Where条件列
+        public List<BCCondiColumn> CondiColumns;
+
+        //自定义代码
+        public string OnCalculateScript;
+        public string OnRecordChangeScript;
+        public string OnBeforeInsertScript;
+        public string OnAfterInsertScript;
+        public string InitScript;
+        public string BeforeUpdateScript;
+        public string AfterUpdateScript;
+        public string InitCSharpCode;
+        public string BeforeSubmitCSharpCode;
+        public string AfterSubmitCSharpCode;
+
         public bool ChangeOnlyOwnerBy;
         public List<UcmlBusiCompPropSet> ChildBC;
         public List<BusiCompColumn> Columns;
@@ -35,8 +50,40 @@ namespace UCML.IDE.WebUCML
         }
     }
 
+    public class BCLinkProperty
+    {
+        public string AppletName;
+        public string Caption;
+        public int RunMode;
+        public string srcFieldName;
+        public string destFieldName;
+        public string condiFieldName;
+        public string Value;
+        public int DropDownWidth;
+        public int DropDownHeight;
+        public string QueryFieldName;
+        public bool fQuickQuery;
+        public bool fDropDownMode;
+
+        public BCLinkProperty()
+        {
+            AppletName = "";
+            Caption = "";
+            RunMode = 0;
+            srcFieldName = "";
+            destFieldName = "";
+            condiFieldName = "";
+            Value = "";
+            DropDownWidth = 0;
+            DropDownHeight = 0;
+            QueryFieldName = "";
+        }
+    }
+
+
     public class BusiCompColumn
     {
+        public string OID;
         public string FieldName ="";
         public int FieldLength;
         public int DecLength;
@@ -71,6 +118,16 @@ namespace UCML.IDE.WebUCML
         public bool fFunctionInitValue;
         public string InitValueFunc;
 
+        //链接业务组件
+        public BCLinkProperty BCLink;
+
+        //自定义代码
+        public string OnFieldChangeScript;
+
+        public BusiCompColumn()
+        {
+            BCLink = new BCLinkProperty();
+        }
         public int FieldType
         {
             get { return _FieldType; }
@@ -104,5 +161,46 @@ namespace UCML.IDE.WebUCML
                 }
             }
         }
+    }
+
+    public class BCCondiColumn
+    {
+        public string FieldName;
+        public int FieldType;
+
+        public int Operation
+        {
+            set
+            {
+                if (value == 0) this.OperationIndent = "=";
+                else if (value == 1) this.OperationIndent = ">=";
+                else if (value == 2) this.OperationIndent = ">";
+                else if (value == 3) this.OperationIndent = "<=";
+                else if (value == 4) this.OperationIndent = "<";
+                else if (value == 5) this.OperationIndent = "<>";
+                else if (value == 6) this.OperationIndent = "Like";
+            }
+        }
+
+        public string OperationIndent;
+
+        public int Logic
+        {
+            set
+            {
+                if (value == 0) this.LogicConnect = "AND";
+                else if (value == 1) this.LogicConnect = "OR";
+            }
+        }
+        public string LogicConnect;
+        public string CondiFieldValue;
+        public string LeftBracket;
+        public string RightBracket;
+        public bool fCondiField;
+        public bool fIsFunctionValue;
+        public string valueFunction;
+        public bool fFreeWhere;
+        public string SQL;
+        public int Pos;
     }
 }

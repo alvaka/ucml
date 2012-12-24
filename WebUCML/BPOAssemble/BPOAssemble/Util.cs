@@ -11,6 +11,7 @@ namespace UCML.IDE.WebUCML
     {
         public static string[] SplitLine(string text)
         {
+            if (String.IsNullOrEmpty(text)) return new string[]{""};
             string[] lines = text.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
             if (lines.Length >=1) return lines;
             else
@@ -25,8 +26,8 @@ namespace UCML.IDE.WebUCML
         {
             try
             {
-                ASCIIEncoding encoding = new ASCIIEncoding();
-                
+                //ASCIIEncoding encoding = new ASCIIEncoding();
+                Encoding encoding = Encoding.Default;
                 StreamWriter writer = new StreamWriter(path, false,encoding);
                 writer.Write(context);
                 writer.Close();
@@ -37,6 +38,7 @@ namespace UCML.IDE.WebUCML
             }
             return true;
         }
+
         public static bool SaveTextFile(string context, string path)
         {
             try

@@ -86,9 +86,12 @@ namespace UCML.IDE.WebUCML
         public bool IsOverride;
         public bool IsAbstract;
         public bool IsNew;
+        public bool IsWebMethod;
+        public bool EnableSession;
         public string ReturnType;
         public Dictionary<string, string> Parameters;
         public List<string> BaseParameters;
+        public string RawContent;
 
         public string this[string key]
         {
@@ -97,6 +100,12 @@ namespace UCML.IDE.WebUCML
         }
 
         public StringBuilder Content;
+
+        public CSharpFunction()
+        {
+           
+        }
+
         public CSharpFunction(string name)
         {
             this.Name = name;
@@ -109,6 +118,7 @@ namespace UCML.IDE.WebUCML
         {
             this.Content.Append(context);
         }
+
         public static CSharpFunction GetConstruction(string name)
         {
             CSharpFunction fun = new CSharpFunction(name);
@@ -116,41 +126,52 @@ namespace UCML.IDE.WebUCML
             fun.AccessAuth = AccessAuthority.PUBLIC;
             return fun;
         }
+
         public override string ToString()
         {
             string indent = "    ";
             StringBuilder sb = new StringBuilder();
-            sb.Append(AccessAuth.ToString().ToLower()+" ");
-            if(!this.IsContruction)
-            {
-                if (this.IsStatic) sb.Append("static ");
-                if (this.IsOverride) sb.Append("override ");
-                if (this.IsNew) sb.Append("new ");
-                sb.Append(ReturnType+" ");
+            if (IsWebMethod) {
+                sb.AppendLine("[WebMethod(EnableSession="+EnableSession.ToString().ToLower()+")]");
             }
-            sb.Append(Name + "(");
-            string param = "";
-            foreach (string key in Parameters.Keys)
+            if (!String.IsNullOrWhiteSpace(this.RawContent))
             {
-                param += (key + " " + Parameters[key] + ",");
+                sb.Append(RawContent);
             }
-            if (param != "") sb.Append(param.Substring(0, param.Length - 1));
-            sb.Append(")");
-            if (this.IsContruction && this.BaseParameters.Count != 0)
+            else
             {
-                sb.Append(":base(");
-                for (int i = 0; i < BaseParameters.Count - 1; i++)
-                    sb.Append(BaseParameters[i] + ",");
-                sb.AppendLine(BaseParameters[BaseParameters.Count - 1] + ")");
+                sb.Append(AccessAuth.ToString().ToLower() + " ");
+                if (!this.IsContruction)
+                {
+                    if (this.IsStatic) sb.Append("static ");
+                    if (this.IsOverride) sb.Append("override ");
+                    if (this.IsNew) sb.Append("new ");
+                    sb.Append(ReturnType + " ");
+                }
+                sb.Append(Name + "(");
+                string param = "";
+                foreach (string key in Parameters.Keys)
+                {
+                    param += (key + " " + Parameters[key] + ",");
+                }
+                if (param != "") sb.Append(param.Substring(0, param.Length - 1));
+                sb.Append(")");
+                if (this.IsContruction && this.BaseParameters.Count != 0)
+                {
+                    sb.Append(":base(");
+                    for (int i = 0; i < BaseParameters.Count - 1; i++)
+                        sb.Append(BaseParameters[i] + ",");
+                    sb.AppendLine(BaseParameters[BaseParameters.Count - 1] + ")");
+                }
+                else sb.AppendLine();
+                sb.AppendLine("{");
+                string[] lines = Util.SplitLine(Content.ToString());
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    sb.AppendLine(indent + lines[i]);
+                }
+                sb.Append("}");
             }
-            else sb.AppendLine();
-            sb.AppendLine("{");
-            string[] lines = Util.SplitLine(Content.ToString());
-            for (int i = 0; i < lines.Length; i++)
-            {
-                sb.AppendLine(indent + lines[i]);
-            }
-            sb.Append("}");
             return sb.ToString();
         }
     }
@@ -212,8 +233,9 @@ namespace UCML.IDE.WebUCML
         public override string ToString()
         {
             string indenet = "    ";
+            string indent4Inner = "      ";
             StringBuilder sb = new StringBuilder();
-            sb.Append(AccessAuth.ToString().ToLower()+" ");
+            sb.Append(AccessAuth.ToString().ToLower() + " ");
             if (this.IsOverride) sb.Append("override ");
             sb.AppendLine(this.Type + " " + this.Name);
             sb.AppendLine("{");
@@ -224,20 +246,19 @@ namespace UCML.IDE.WebUCML
                 string[] getLines = Util.SplitLine(this.GetStatment.ToString());
                 foreach (string line in getLines)
                 {
-                    sb.AppendLine(indenet + line);
+                    sb.AppendLine(indent4Inner + line);
                 }
                 sb.AppendLine(indenet + "}");
             }
-            else if (this.SetStatment.Length != 0)
+            if (this.SetStatment.Length != 0)
             {
                 sb.AppendLine(indenet + "set");
                 sb.AppendLine(indenet + "{");
                 string[] setLines = Util.SplitLine(this.SetStatment.ToString());
                 foreach (string line in setLines)
                 {
-                    sb.AppendLine(indenet + line);
+                    sb.AppendLine(indent4Inner + line);
                 }
-                sb.AppendLine(indenet + this.SetStatment);
                 sb.AppendLine(indenet + "}");
             }
             sb.Append("}");

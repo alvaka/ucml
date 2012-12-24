@@ -46,6 +46,7 @@ namespace UCML.IDE.WebUCML
                 {
                     sb.AppendLine(indent+lines[i]); ;
                 }
+                sb.AppendLine();
             }
             sb.Append("}");
             return sb.ToString();

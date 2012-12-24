@@ -80,11 +80,14 @@ namespace UCML.IDE.WebUCML
         public string Name;
         public List<string> Params;
         public StringBuilder Content;
+        public string RawContent;
+
         public JsFunction()
         {
             Params = new List<string>();
             Content = new StringBuilder();
         }
+
         public JsFunction(string name)
         {
             this.Name = name;
@@ -94,25 +97,33 @@ namespace UCML.IDE.WebUCML
         
         public override string ToString() //将JS函数转换成文本
         {
-            StringBuilder sb = new StringBuilder("function "+this.Name+"(");
-            if (Params != null && Params.Count != 0)
+            if (!String.IsNullOrWhiteSpace(RawContent))
             {
-                for (int i = 0; i < Params.Count; i++)
+                return RawContent;
+            }
+            else
+            {
+                StringBuilder sb = new StringBuilder("function " + this.Name + "(");
+                if (Params != null && Params.Count != 0)
                 {
-                    sb.Append(Params[i]);
-                    if (i != Params.Count - 1) sb.Append(",");
+                    for (int i = 0; i < Params.Count; i++)
+                    {
+                        sb.Append(Params[i]);
+                        if (i != Params.Count - 1) sb.Append(",");
+                    }
                 }
-            }
 
-            sb.AppendLine("){");
-            string indentStr = "   ";
-            string[] lines = Util.SplitLine(Content.ToString());
-            if (lines != null)
-            {
-                foreach (string line in lines) sb.AppendLine(indentStr+line);
+                sb.AppendLine("){");
+                string indentStr = "   ";
+                string[] lines = Util.SplitLine(Content.ToString());
+                if (lines != null)
+                {
+                    foreach (string line in lines) sb.AppendLine(indentStr + line);
+                }
+                sb.Append("}");
+
+                return sb.ToString();
             }
-            sb.Append("}");
-            return sb.ToString();
         }
     }
    

@@ -30,7 +30,17 @@ namespace UCML.IDE.WebUCML
         public bool UserDefineHTML;
         public int Kind;
 
+        //自定义代码 部分
+        public string InitScript;
+        public string BeforeUpdateScript;
+        public string AfterApplyScript;
+
+        public string HttpGetCSharpCode;
+        public string HttpPostCSharpCode;
+        public string PageLoadCSharpCode;
+
         public List<UcmlVcColumn> Columns;
+        public List<UcmlVcButton> Buttons;
 
         public UcmlViewCompnent()
         {
@@ -90,7 +100,49 @@ namespace UCML.IDE.WebUCML
         public string ControlID;
         public string EditContrl;
 
+        //Query VC需要的字段
+        public string LeftBracket;
+        public string RightBracket;
+        public string LogicConnect;
+        public string CondiFieldValue;
+        public bool fIsFunctionValue;
+        public string OperationIndent;
+        public bool InnerLinkComp;
 
+        //转换Operation 到OperationIndent
+        public int Operation
+        {
+            set
+            {
+                if (value == 0) this.OperationIndent = "=";
+                else if (value == 1) this.OperationIndent = ">=";
+                else if (value == 2) this.OperationIndent = ">";
+                else if (value == 3) this.OperationIndent = "<=";
+                else if (value == 4) this.OperationIndent = "<";
+                else if (value == 5) this.OperationIndent = "<>";
+                else if (value == 6) this.OperationIndent = "Like";
+            }
+        }
+
+        public int Logic
+        {
+            set
+            {
+                if (value == 0) this.LogicConnect = "AND";
+                else if (value == 1) this.LogicConnect = "OR";
+            }
+        }
+    }
+
+    public class UcmlVcButton
+    {
+        public string Caption;
+        public string ImgeLink;
+        public int Width;
+        public string ToolTip;
+        public string OnClickScript;
+        public int Type;
+        public bool fOnlyPicture;
     }
 
     public class UcmlVcTabPage
@@ -99,6 +151,7 @@ namespace UCML.IDE.WebUCML
         public string Caption;
         public string Name;
         public string ParentOID;
+
         public UcmlVcTabPage()
         {
             VCList = new List<UcmlViewCompnent>();

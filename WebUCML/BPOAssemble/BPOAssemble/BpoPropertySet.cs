@@ -19,7 +19,7 @@ namespace UCML.IDE.WebUCML
         public bool fEnableConfig ;
         public bool fUseSkin;
         public string SkinSrc;
-
+        public string BodyStyle;
         //Javascript Code
         public string InitScript;
         public string BeforeSubmitScript;
@@ -31,5 +31,9 @@ namespace UCML.IDE.WebUCML
         public string BeforeSubmitCSharpCode;
         public string AfterSubmitCSharpCode;
         public string RefCSharpLibrary;
+
+        public List<CSharpFunction> CSharpFuncs;
+        public List<JsFunction> JsFuncs;
     }
+
 }

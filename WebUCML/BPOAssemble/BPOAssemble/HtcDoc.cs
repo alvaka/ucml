@@ -29,6 +29,7 @@ namespace UCML.IDE.WebUCML
             foreach (JsFunction fun in this.FuncList) 
             {
                 sb.AppendLine(fun.ToString());
+                sb.AppendLine();
             }
             sb.AppendLine("</script>");
             
